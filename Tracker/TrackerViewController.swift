@@ -3,6 +3,7 @@ import UIKit
 final class TrackerViewController: UIViewController {
     var categories: [TrackerCategory] = []
     var completedTrackers: [TrackerRecord] = []
+    private var trackers: [Tracker] = []
     
     private var collectionView: UICollectionView?
     
@@ -61,9 +62,10 @@ final class TrackerViewController: UIViewController {
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "TrackerCell")
+        collectionView.register(TrackerCollectionViewCell.self, forCellWithReuseIdentifier: "TrackerCell")
         collectionView.dataSource = self
         collectionView.delegate = self
+        updatePlaceholderVisibility()
 
         view.addSubview(emptyImageView)
         view.addSubview(emptyLabel)
@@ -90,9 +92,16 @@ final class TrackerViewController: UIViewController {
     @objc
     private func addButtonTapped() {
         let createTrackerVC = CreateTrackerViewController()
+        createTrackerVC.delegate = self
         let navController = UINavigationController(rootViewController: createTrackerVC)
         navController.modalPresentationStyle = .pageSheet
         present(navController, animated: true)
+    }
+    
+    private func updatePlaceholderVisibility() {
+        let isEmpty = trackers.isEmpty
+        emptyImageView.isHidden = !isEmpty
+        emptyLabel.isHidden = !isEmpty
     }
 }
 
@@ -104,18 +113,38 @@ private func formattedDate(_ date: Date) -> String {
 
 extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 0 // пока что пусто
+        return trackers.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        return collectionView.dequeueReusableCell(withReuseIdentifier: "TrackerCell", for: indexPath)
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TrackerCell", for: indexPath) as? TrackerCollectionViewCell else {
+            return UICollectionViewCell()
+        }
+        let tracker = trackers[indexPath.item]
+        let completedDays = completedTrackers.filter { $0.trackerID == tracker.id }.count
+        let isCompletedToday = completedTrackers.contains {
+            $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: Date())
+        }
+        cell.configure(with: tracker, completedDays: completedDays, isCompleted: isCompletedToday)
+        cell.onPlusButtonTapped = { [weak self] in
+            guard let self = self else { return }
+            let today = Date()
+            let record = TrackerRecord(id: UUID(), date: today, trackerID: tracker.id)
+            self.completedTrackers.append(record)
+            self.collectionView?.reloadItems(at: [indexPath])
+        }
+        return cell
     }
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 100, height: 100)
+        return CGSize(width: 167, height: 148)
     }
 }
 
-//#Preview {
-//    TrackerViewController()
-//}
+extension TrackerViewController: CreateTrackerViewControllerDelegate {
+    func didCreateTracker(_ tracker: Tracker) {
+        trackers.append(tracker)
+        collectionView?.reloadData()
+        updatePlaceholderVisibility()
+    }
+}

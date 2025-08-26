@@ -7,7 +7,19 @@
 
 import UIKit
 
+enum WeekDay: String, CaseIterable {
+    case monday = "Понедельник"
+    case tuesday = "Вторник"
+    case wednesday = "Среда"
+    case thursday = "Четверг"
+    case friday = "Пятница"
+    case saturday = "Суббота"
+    case sunday = "Воскресенье"
+}
+
 class CreateTrackerViewController: UIViewController, ScheduleViewControllerDelegate {
+    
+    weak var delegate: CreateTrackerViewControllerDelegate?
     
     private let titles = ["Категория", "Расписание"]
     
@@ -84,6 +96,7 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
         setupLayout()
 
         cancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
+        createButton.addTarget(self, action: #selector(createButtonTapped), for: .touchUpInside)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(hideKeyboard))
         tapGesture.cancelsTouchesInView = false
@@ -148,6 +161,21 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
     }
     
     @objc private func cancelButtonTapped() {
+        dismiss(animated: true, completion: nil)
+    }
+    
+    @objc private func createButtonTapped() {
+        guard let title = nameTextField.text, !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
+        let schedule: [String] = selectedDays.map { WeekDay.allCases[$0].rawValue }
+        let tracker = Tracker(
+            id: UUID(),
+            name: title,
+            color: #colorLiteral(red: 0.2, green: 0.811, blue: 0.412, alpha: 1),
+            emoji: "😪",
+            schedule: schedule
+        )
+        delegate?.didCreateTracker(tracker)
         dismiss(animated: true, completion: nil)
     }
 }
@@ -254,21 +282,5 @@ extension CreateTrackerViewController {
         self.selectedDays = days
         tableView.reloadRows(at: [IndexPath(row: 1, section: 0)], with: .automatic)
         controller.dismiss(animated: true, completion: nil)
-    }
-}
-
-private extension UIColor {
-    convenience init(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-
-        var rgb: UInt64 = 0
-        Scanner(string: hexSanitized).scanHexInt64(&rgb)
-
-        let red = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
-        let green = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
-        let blue = CGFloat(rgb & 0x0000FF) / 255.0
-
-        self.init(red: red, green: green, blue: blue, alpha: 1.0)
     }
 }
