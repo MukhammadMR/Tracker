@@ -84,6 +84,7 @@ class CreateTrackerViewController: UIViewController {
         cancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(hideKeyboard))
+        tapGesture.cancelsTouchesInView = false
         view.addGestureRecognizer(tapGesture)
         
         nameTextField.delegate = self
@@ -179,8 +180,18 @@ extension CreateTrackerViewController: UITableViewDataSource {
 
 extension CreateTrackerViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        print("Tapped row at indexPath.row = \(indexPath.row)")
+        print("Cell title: \(titles[indexPath.row])")
         tableView.deselectRow(at: indexPath, animated: true)
-        // TODO: Добавить переход на экран выбора
+        
+        if indexPath.row == 1 {
+            print("Создаём ScheduleViewController")
+            let scheduleViewController = ScheduleViewController()
+            let navController = UINavigationController(rootViewController: scheduleViewController)
+            DispatchQueue.main.async {
+                self.present(navController, animated: true, completion: nil)
+            }
+        }
     }
 }
 
@@ -202,6 +213,8 @@ extension CreateTrackerViewController: UITextFieldDelegate {
             tableViewTopWithError.isActive = true
             textField.layer.borderColor = UIColor.red.cgColor
             textField.layer.borderWidth = 1
+            createButton.isEnabled = false
+            createButton.backgroundColor = #colorLiteral(red: 0.682, green: 0.686, blue: 0.706, alpha: 1)
             UIView.animate(withDuration: 0.25) {
                 self.view.layoutIfNeeded()
             }
@@ -212,6 +225,8 @@ extension CreateTrackerViewController: UITextFieldDelegate {
             tableViewTopWithoutError.isActive = true
             textField.layer.borderColor = UIColor.clear.cgColor
             textField.layer.borderWidth = 0
+            createButton.isEnabled = !updatedText.trimmingCharacters(in: .whitespaces).isEmpty
+            createButton.backgroundColor = updatedText.trimmingCharacters(in: .whitespaces).isEmpty ? #colorLiteral(red: 0.682, green: 0.686, blue: 0.706, alpha: 1) : #colorLiteral(red: 0.212, green: 0.22, blue: 0.255, alpha: 1)
             UIView.animate(withDuration: 0.25) {
                 self.view.layoutIfNeeded()
             }
