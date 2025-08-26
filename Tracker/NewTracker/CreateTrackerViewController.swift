@@ -7,7 +7,7 @@
 
 import UIKit
 
-class CreateTrackerViewController: UIViewController {
+class CreateTrackerViewController: UIViewController, ScheduleViewControllerDelegate {
     
     private let titles = ["Категория", "Расписание"]
     
@@ -67,6 +67,8 @@ class CreateTrackerViewController: UIViewController {
     private var tableViewTopWithError: NSLayoutConstraint!
     private var tableViewTopWithoutError: NSLayoutConstraint!
     
+    private var selectedDays: [Int] = []
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = #colorLiteral(red: 0.9999999404, green: 1, blue: 1, alpha: 1)
@@ -75,10 +77,10 @@ class CreateTrackerViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.isScrollEnabled = false
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
         tableView.rowHeight = 75
         tableView.layer.cornerRadius = 16
         tableView.layer.masksToBounds = true
+        tableView.register(ScheduleDisplayCell.self, forCellReuseIdentifier: "ScheduleDisplayCell")
         setupLayout()
 
         cancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
@@ -166,11 +168,22 @@ extension CreateTrackerViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "ScheduleDisplayCell") as? ScheduleDisplayCell ?? ScheduleDisplayCell(style: .default, reuseIdentifier: "ScheduleDisplayCell")
         cell.backgroundColor = #colorLiteral(red: 0.902, green: 0.91, blue: 0.922, alpha: 0.3)
-        cell.textLabel?.font = UIFont.systemFont(ofSize: 17)
-        cell.textLabel?.text = titles[indexPath.row]
-        cell.accessoryType = .disclosureIndicator
+        cell.titleLabel.text = titles[indexPath.row]
+        if indexPath.row == 1 {
+            if selectedDays.isEmpty {
+                cell.subtitleLabel.text = nil
+            } else if selectedDays.count == 7 {
+                cell.subtitleLabel.text = "Каждый день"
+            } else {
+                let shortWeekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+                let selectedNames = selectedDays.map { shortWeekdays[$0] }.joined(separator: ", ")
+                cell.subtitleLabel.text = selectedNames
+            }
+        } else {
+            cell.subtitleLabel.text = nil
+        }
         cell.separatorInset = indexPath.row == titles.count - 1
             ? UIEdgeInsets(top: 0, left: 0, bottom: 0, right: .greatestFiniteMagnitude)
             : .zero
@@ -187,6 +200,7 @@ extension CreateTrackerViewController: UITableViewDelegate {
         if indexPath.row == 1 {
             print("Создаём ScheduleViewController")
             let scheduleViewController = ScheduleViewController()
+            scheduleViewController.delegate = self
             let navController = UINavigationController(rootViewController: scheduleViewController)
             DispatchQueue.main.async {
                 self.present(navController, animated: true, completion: nil)
@@ -232,5 +246,29 @@ extension CreateTrackerViewController: UITextFieldDelegate {
             }
             return true
         }
+    }
+}
+
+extension CreateTrackerViewController {
+    func scheduleViewController(_ controller: ScheduleViewController, didSelectDays days: [Int]) {
+        self.selectedDays = days
+        tableView.reloadRows(at: [IndexPath(row: 1, section: 0)], with: .automatic)
+        controller.dismiss(animated: true, completion: nil)
+    }
+}
+
+private extension UIColor {
+    convenience init(hex: String) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+        Scanner(string: hexSanitized).scanHexInt64(&rgb)
+
+        let red = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+        let green = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+        let blue = CGFloat(rgb & 0x0000FF) / 255.0
+
+        self.init(red: red, green: green, blue: blue, alpha: 1.0)
     }
 }

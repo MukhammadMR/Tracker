@@ -8,6 +8,8 @@
 import UIKit
 
 final class ScheduleViewController: UIViewController {
+    weak var delegate: ScheduleViewControllerDelegate?
+    
     private let tableView = UITableView()
     private let daysOfWeek = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
     private var selectedDays = Set<Int>()
@@ -28,6 +30,13 @@ final class ScheduleViewController: UIViewController {
         view.backgroundColor = .systemBackground
         view.addSubview(doneButton)
         setupTableView()
+        doneButton.addTarget(self, action: #selector(doneButtonTapped), for: .touchUpInside)
+    }
+
+    @objc private func doneButtonTapped() {
+        print("DEBUG: Selected days before passing to delegate: \(selectedDays)")
+        delegate?.scheduleViewController(self, didSelectDays: Array(selectedDays).sorted())
+        dismiss(animated: true)
     }
 
     private func setupTableView() {
@@ -57,6 +66,15 @@ final class ScheduleViewController: UIViewController {
             doneButton.heightAnchor.constraint(equalToConstant: 60)
         ])
     }
+
+    @objc private func switchChanged(_ sender: UISwitch) {
+        let dayIndex = sender.tag
+        if sender.isOn {
+            selectedDays.insert(dayIndex)
+        } else {
+            selectedDays.remove(dayIndex)
+        }
+    }
 }
 
 extension ScheduleViewController: UITableViewDataSource, UITableViewDelegate {
@@ -71,50 +89,12 @@ extension ScheduleViewController: UITableViewDataSource, UITableViewDelegate {
         let day = daysOfWeek[indexPath.row]
         cell.dayLabel.text = day
         cell.toggleSwitch.isOn = selectedDays.contains(indexPath.row)
+        cell.toggleSwitch.tag = indexPath.row
+        cell.toggleSwitch.addTarget(self, action: #selector(switchChanged(_:)), for: .valueChanged)
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if selectedDays.contains(indexPath.row) {
-            selectedDays.remove(indexPath.row)
-        } else {
-            selectedDays.insert(indexPath.row)
-        }
-        tableView.reloadRows(at: [indexPath], with: .automatic)
-    }
-}
-
-final class ScheduleCell: UITableViewCell {
-    let dayLabel = UILabel()
-    let toggleSwitch = UISwitch()
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = UIColor(white: 0.902, alpha: 0.3)
-        selectionStyle = .none
-
-        dayLabel.translatesAutoresizingMaskIntoConstraints = false
-        toggleSwitch.translatesAutoresizingMaskIntoConstraints = false
-        toggleSwitch.onTintColor = UIColor.systemBlue
-
-        contentView.addSubview(dayLabel)
-        contentView.addSubview(toggleSwitch)
-
-        NSLayoutConstraint.activate([
-            contentView.heightAnchor.constraint(equalToConstant: 75),
-
-            dayLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            dayLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-
-            toggleSwitch.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            toggleSwitch.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            toggleSwitch.widthAnchor.constraint(equalToConstant: 51),
-            toggleSwitch.heightAnchor.constraint(equalToConstant: 31)
-        ])
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 }
