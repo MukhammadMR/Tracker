@@ -1,10 +1,13 @@
 import UIKit
 
 final class TrackerViewController: UIViewController {
+    // MARK: - Data Sources
     var categories: [TrackerCategory] = []
     var completedTrackers: [TrackerRecord] = []
     private var trackers: [Tracker] = []
+    private var currentDate: Date = Date()
     
+    // MARK: - UI Components
     private var collectionView: UICollectionView?
     
     private let emptyImageView: UIImageView = {
@@ -31,6 +34,7 @@ final class TrackerViewController: UIViewController {
         return textField
     }()
     
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -45,6 +49,7 @@ final class TrackerViewController: UIViewController {
         datePicker.tintColor = .black
         datePicker.locale = Locale(identifier: "ru_RU")
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
+        datePicker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
         
         view.addSubview(searchTextField)
 
@@ -90,6 +95,13 @@ final class TrackerViewController: UIViewController {
     }
     
     @objc
+    private func dateChanged(_ sender: UIDatePicker) {
+        currentDate = sender.date
+        collectionView?.reloadData()
+    }
+    
+    // MARK: - Actions
+    @objc
     private func addButtonTapped() {
         let createTrackerVC = CreateTrackerViewController()
         createTrackerVC.delegate = self
@@ -98,6 +110,7 @@ final class TrackerViewController: UIViewController {
         present(navController, animated: true)
     }
     
+    // MARK: - Helpers
     private func updatePlaceholderVisibility() {
         let isEmpty = trackers.isEmpty
         emptyImageView.isHidden = !isEmpty
@@ -105,12 +118,14 @@ final class TrackerViewController: UIViewController {
     }
 }
 
+// MARK: - Date Formatting
 private func formattedDate(_ date: Date) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "dd.MM.yy"
     return formatter.string(from: date)
 }
 
+// MARK: - UICollectionViewDataSource & Delegate
 extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return trackers.count
@@ -123,14 +138,20 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
         let tracker = trackers[indexPath.item]
         let completedDays = completedTrackers.filter { $0.trackerID == tracker.id }.count
         let isCompletedToday = completedTrackers.contains {
-            $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: Date())
+            $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: currentDate)
         }
-        cell.configure(with: tracker, completedDays: completedDays, isCompleted: isCompletedToday)
+        let isFutureDate = currentDate > Date()
+        cell.configure(with: tracker, completedDays: completedDays, isCompleted: isCompletedToday, isFutureDate: isFutureDate)
         cell.onPlusButtonTapped = { [weak self] in
             guard let self = self else { return }
-            let today = Date()
-            let record = TrackerRecord(id: UUID(), date: today, trackerID: tracker.id)
-            self.completedTrackers.append(record)
+            if let index = self.completedTrackers.firstIndex(where: {
+                $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: self.currentDate)
+            }) {
+                self.completedTrackers.remove(at: index)
+            } else {
+                let record = TrackerRecord(id: UUID(), date: self.currentDate, trackerID: tracker.id)
+                self.completedTrackers.append(record)
+            }
             self.collectionView?.reloadItems(at: [indexPath])
         }
         return cell
@@ -141,6 +162,7 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
     }
 }
 
+// MARK: - CreateTrackerViewControllerDelegate
 extension TrackerViewController: CreateTrackerViewControllerDelegate {
     func didCreateTracker(_ tracker: Tracker) {
         trackers.append(tracker)

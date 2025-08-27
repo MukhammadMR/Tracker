@@ -12,6 +12,8 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     static let reuseIdentifier = "TrackerCell"
     
     var onPlusButtonTapped: (() -> Void)?
+    
+    private var isCompleted: Bool = false
 
     private let emojiBackgroundView: UIView = {
         let view = UIView()
@@ -105,17 +107,28 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with tracker: Tracker, completedDays: Int, isCompleted: Bool) {
+    func configure(with tracker: Tracker, completedDays: Int, isCompleted: Bool, isFutureDate: Bool) {
         emojiLabel.text = tracker.emoji
         titleLabel.text = tracker.name
-        daysLabel.text = "\(completedDays) дней"
+        daysLabel.text = "\(completedDays) \(completedDays == 1 ? "день" : (completedDays >= 2 && completedDays <= 4 ? "дня" : "дней"))"
         cardView.backgroundColor = tracker.color
+        self.isCompleted = isCompleted
+        updatePlusButtonAppearance(isFutureDate: isFutureDate)
+    }
+    
+    private func updatePlusButtonAppearance(isFutureDate: Bool) {
         let imageName = isCompleted ? "tracker_done_button" : "tracker_plus_button"
         plusButton.setImage(UIImage(named: imageName), for: .normal)
-        plusButton.isEnabled = !isCompleted
+        plusButton.isEnabled = !isFutureDate
+    }
+    
+    private func toggleTrackerCompletion() {
+        isCompleted.toggle()
+        updatePlusButtonAppearance(isFutureDate: false)
+        onPlusButtonTapped?()
     }
     
     @objc private func plusButtonTapped() {
-        onPlusButtonTapped?()
+        toggleTrackerCompletion()
     }
 }

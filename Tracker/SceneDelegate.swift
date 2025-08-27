@@ -23,8 +23,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         trackerNavigationController.tabBarItem = UITabBarItem(title: "Трекеры", image: UIImage(named: "trackers"), selectedImage: nil)
 
         let statisticsViewController = UIViewController()
-//        statisticsViewController.view.backgroundColor = .white
-//        statisticsViewController.title = "Статистика"
         let statisticsNavigationController = UINavigationController(rootViewController: statisticsViewController)
         statisticsNavigationController.navigationBar.prefersLargeTitles = true
         statisticsNavigationController.tabBarItem = UITabBarItem(title: "Статистика", image: UIImage(named: "statistic"), selectedImage: nil)

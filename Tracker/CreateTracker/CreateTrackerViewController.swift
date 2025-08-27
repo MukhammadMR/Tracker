@@ -7,6 +7,16 @@
 
 import UIKit
 
+private enum Constants {
+    static let titleLimitWarning = "Ограничение 38 символов"
+    static let categoryTitle = "Категория"
+    static let scheduleTitle = "Расписание"
+    static let textFieldTop: CGFloat = 24
+    static let textFieldSide: CGFloat = 16
+    static let textFieldHeight: CGFloat = 75
+    static let errorLabelTop: CGFloat = 8
+}
+
 enum WeekDay: String, CaseIterable {
     case monday = "Понедельник"
     case tuesday = "Вторник"
@@ -17,11 +27,11 @@ enum WeekDay: String, CaseIterable {
     case sunday = "Воскресенье"
 }
 
-class CreateTrackerViewController: UIViewController, ScheduleViewControllerDelegate {
+final class CreateTrackerViewController: UIViewController, ScheduleViewControllerDelegate {
     
     weak var delegate: CreateTrackerViewControllerDelegate?
     
-    private let titles = ["Категория", "Расписание"]
+    private lazy var titles: [String] = [Constants.categoryTitle, Constants.scheduleTitle]
     
     private let nameTextField: UITextField = {
         let textField = UITextField()
@@ -29,7 +39,6 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
         textField.backgroundColor = #colorLiteral(red: 0.902, green: 0.91, blue: 0.922, alpha: 0.3)
         textField.layer.cornerRadius = 10
         textField.font = UIFont.systemFont(ofSize: 17)
-        textField.translatesAutoresizingMaskIntoConstraints = false
         textField.clearButtonMode = .whileEditing
         textField.setLeftPaddingPoints(16)
         textField.layer.borderColor = UIColor.clear.cgColor
@@ -39,10 +48,9 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
     
     private let errorLabel: UILabel = {
         let label = UILabel()
-        label.text = "Ограничение 38 символов"
+        label.text = Constants.titleLimitWarning
         label.textColor = #colorLiteral(red: 0.961, green: 0.361, blue: 0.424, alpha: 1)
         label.font = UIFont.systemFont(ofSize: 17)
-        label.translatesAutoresizingMaskIntoConstraints = false
         label.isHidden = true
         label.textAlignment = .center
         return label
@@ -50,7 +58,6 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
 
     private let tableView: UITableView = {
         let tableView = UITableView(frame: .zero, style: .plain)
-        tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
     
@@ -61,7 +68,6 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
         button.layer.borderColor = #colorLiteral(red: 0.961, green: 0.361, blue: 0.424, alpha: 1)
         button.layer.borderWidth = 1
         button.layer.cornerRadius = 16
-        button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
     
@@ -71,11 +77,9 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = #colorLiteral(red: 0.682, green: 0.686, blue: 0.706, alpha: 1)
         button.layer.cornerRadius = 16
-        button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
     
-    // private var tableViewTopConstraint: NSLayoutConstraint?
     private var tableViewTopWithError: NSLayoutConstraint!
     private var tableViewTopWithoutError: NSLayoutConstraint!
     
@@ -93,6 +97,8 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
         tableView.layer.cornerRadius = 16
         tableView.layer.masksToBounds = true
         tableView.register(ScheduleDisplayCell.self, forCellReuseIdentifier: "ScheduleDisplayCell")
+        
+        addSubviews()
         setupLayout()
 
         cancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
@@ -104,34 +110,24 @@ class CreateTrackerViewController: UIViewController, ScheduleViewControllerDeleg
         
         nameTextField.delegate = self
         print("TextField interaction: \(nameTextField.isUserInteractionEnabled)")
-        
-//        DispatchQueue.main.async {
-//            self.nameTextField.becomeFirstResponder()
-//        }
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        print("→ viewDidAppear called")
-        print("Can become first responder:", nameTextField.canBecomeFirstResponder)
-        let result = nameTextField.becomeFirstResponder()
-        print("Become first responder result:", result)
+    private func addSubviews() {
+        [nameTextField, errorLabel, tableView, cancelButton, createButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
     }
+    
     
     private func setupLayout() {
-        view.addSubview(tableView)
-        view.addSubview(nameTextField)
-        view.addSubview(errorLabel)
-        view.addSubview(cancelButton)
-        view.addSubview(createButton)
-
         NSLayoutConstraint.activate([
-            nameTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
-            nameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            nameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            nameTextField.heightAnchor.constraint(equalToConstant: 75),
+            nameTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.textFieldTop),
+            nameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: Constants.textFieldSide),
+            nameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.textFieldSide),
+            nameTextField.heightAnchor.constraint(equalToConstant: Constants.textFieldHeight),
             
-            errorLabel.topAnchor.constraint(equalTo: nameTextField.bottomAnchor, constant: 8),
+            errorLabel.topAnchor.constraint(equalTo: nameTextField.bottomAnchor, constant: Constants.errorLabelTop),
             errorLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
             cancelButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -192,7 +188,7 @@ private extension UITextField {
 
 extension CreateTrackerViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return titles.count
+        titles.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -230,9 +226,7 @@ extension CreateTrackerViewController: UITableViewDelegate {
             let scheduleViewController = ScheduleViewController()
             scheduleViewController.delegate = self
             let navController = UINavigationController(rootViewController: scheduleViewController)
-            DispatchQueue.main.async {
-                self.present(navController, animated: true, completion: nil)
-            }
+            self.present(navController, animated: true, completion: nil)
         }
     }
 }

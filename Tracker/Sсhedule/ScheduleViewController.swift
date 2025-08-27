@@ -36,7 +36,7 @@ final class ScheduleViewController: UIViewController {
     @objc private func doneButtonTapped() {
         print("DEBUG: Selected days before passing to delegate: \(selectedDays)")
         delegate?.scheduleViewController(self, didSelectDays: Array(selectedDays).sorted())
-        dismiss(animated: true)
+        dismiss(animated: true, completion: nil)
     }
 
     private func setupTableView() {
