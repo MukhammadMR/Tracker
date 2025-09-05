@@ -65,6 +65,11 @@ final class TrackerViewController: UIViewController {
         ])
 
         let layout = UICollectionViewFlowLayout()
+        layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        layout.minimumLineSpacing = 16
+        layout.minimumInteritemSpacing = 9
+        layout.estimatedItemSize = .zero
+        layout.sectionInsetReference = .fromSafeArea
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         guard let collectionView = collectionView else { return }
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -96,13 +101,12 @@ final class TrackerViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             emptyImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyImageView.topAnchor.constraint(equalTo: searchTextField.bottomAnchor, constant: 220),
+            emptyImageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             emptyImageView.widthAnchor.constraint(equalToConstant: 80),
             emptyImageView.heightAnchor.constraint(equalToConstant: 80),
             
             emptyLabel.topAnchor.constraint(equalTo: emptyImageView.bottomAnchor, constant: 8),
-            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -246)
+            emptyLabel.centerXAnchor.constraint(equalTo: emptyImageView.centerXAnchor)
         ])
     }
     
@@ -188,7 +192,12 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
     }
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 167, height: 148)
+        let availableWidth = collectionView.frame.width
+        let spacing: CGFloat = 9
+        let itemsPerRow: CGFloat = 2
+        let totalSpacing = spacing * (itemsPerRow - 1)
+        let itemWidth = floor((availableWidth - totalSpacing) / itemsPerRow)
+        return CGSize(width: itemWidth, height: 148)
     }
 }
 
