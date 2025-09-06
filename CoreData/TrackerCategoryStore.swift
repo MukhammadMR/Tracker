@@ -14,7 +14,7 @@ final class TrackerCategoryStore: NSObject {
 
     var onChange: () -> Void = {}
 
-    private init(context: NSManagedObjectContext = CoreDataStack.shared.context) {
+    init(context: NSManagedObjectContext = CoreDataStack.shared.context) {
         self.context = context
         let fetchRequest: NSFetchRequest<TrackerCategoryCoreData> = TrackerCategoryCoreData.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
@@ -40,10 +40,12 @@ final class TrackerCategoryStore: NSObject {
         return try context.fetch(request)
     }
 
-    func addCategory(name: String) throws {
+    @discardableResult
+    func addCategory(name: String) throws -> TrackerCategoryCoreData {
         let category = TrackerCategoryCoreData(context: context)
         category.name = name
         try context.save()
+        return category
     }
 
     func deleteCategory(_ category: TrackerCategoryCoreData) throws {

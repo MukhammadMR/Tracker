@@ -30,6 +30,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let tabBarController = UITabBarController()
         tabBarController.viewControllers = [trackerNavigationController, statisticsNavigationController]
 
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .white
+        appearance.shadowColor = UIColor.lightGray
+
+        tabBarController.tabBar.standardAppearance = appearance
+        if #available(iOS 15.0, *) {
+            tabBarController.tabBar.scrollEdgeAppearance = appearance
+        }
         window.rootViewController = tabBarController
         window.makeKeyAndVisible()
     }

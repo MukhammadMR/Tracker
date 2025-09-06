@@ -7,11 +7,12 @@
 
 import UIKit
 
+
 final class CategoryViewController: UIViewController {
     weak var delegate: CategoryViewControllerDelegate?
     
-    private var selectedCategory: String?
-    private var categories: [String] = []
+    private var selectedCategory: TrackerCategoryCoreData?
+    private var categories: [TrackerCategoryCoreData] = []
     
     private let emptyCategoryLabel: UILabel = {
         let label = UILabel()
@@ -48,8 +49,13 @@ final class CategoryViewController: UIViewController {
         super.viewDidLoad()
         navigationItem.title = "Категория"
         view.backgroundColor = .systemBackground
-        loadCategories()
-        selectedCategory = delegate?.currentlySelectedCategory
+        do {
+            let categoryStore = TrackerCategoryStore.shared
+            categories = try categoryStore.fetchAllCategories()
+        } catch {
+            print("Ошибка при загрузке категорий: \(error)")
+        }
+        selectedCategory = delegate?.currentlySelectedCategory as? TrackerCategoryCoreData
         newCategoryButton.addTarget(self, action: #selector(newCategoryButtonTapped), for: .touchUpInside)
         
         let layout = UICollectionViewFlowLayout()
@@ -104,17 +110,12 @@ final class CategoryViewController: UIViewController {
         collectionView.isHidden = isEmpty
     }
     
-    private func loadCategories() {
-        if let savedCategories = UserDefaults.standard.array(forKey: "categories") as? [String] {
-            categories = savedCategories
-        }
-    }
-    
     @objc private func newCategoryButtonTapped() {
         let newCategoryVC = NewCategoryViewController()
-        newCategoryVC.onCategoryCreated = { [weak self] newCategory in
-            print("Создана новая категория: \(newCategory)")
+        newCategoryVC.onCategoryCreated = { [weak self] newCategoryName in
+            print("Создана новая категория: \(newCategoryName)")
             guard let self = self else { return }
+            guard let newCategory = try? TrackerCategoryStore.shared.addCategory(name: newCategoryName) else { return }
             self.categories.append(newCategory)
             let indexPath = IndexPath(item: self.categories.count - 1, section: 0)
             self.collectionView.performBatchUpdates {
@@ -124,17 +125,15 @@ final class CategoryViewController: UIViewController {
             self.emptyCategoryImageView.isHidden = !isEmpty
             self.emptyCategoryLabel.isHidden = !isEmpty
             self.collectionView.isHidden = isEmpty
-            UserDefaults.standard.set(self.categories, forKey: "categories")
-            UserDefaults.standard.synchronize()
             self.selectedCategory = nil
         }
         let navigationController = UINavigationController(rootViewController: newCategoryVC)
         present(navigationController, animated: true)
     }
     
-    func selectCategory(_ category: String) {
+    func selectCategory(_ category: TrackerCategoryCoreData) {
         selectedCategory = category
-        delegate?.didSelectCategory(category)
+        delegate?.didSelectCategory(category.name ?? "")
         collectionView.reloadData()
         dismiss(animated: true, completion: nil)
     }
@@ -148,24 +147,34 @@ final class CategoryViewController: UIViewController {
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Редактировать", style: .default, handler: { _ in
             let editVC = NewCategoryViewController()
-            editVC.categoryToEdit = category
-            editVC.onCategoryEdited = { [weak self] updatedCategory in
-                self?.categories[indexPath.item] = updatedCategory
-                UserDefaults.standard.set(self?.categories, forKey: "categories")
-                self?.collectionView.reloadData()
+            editVC.categoryToEdit = category.name ?? ""
+            editVC.onCategoryEdited = { [weak self] updatedCategoryName in
+                guard let self = self else { return }
+                do {
+                    try TrackerCategoryStore.shared.updateCategory(category, name: updatedCategoryName)
+                    category.name = updatedCategoryName
+                    self.collectionView.reloadData()
+                } catch {
+                    print("Ошибка при обновлении категории: \(error)")
+                }
             }
             let navController = UINavigationController(rootViewController: editVC)
             self.present(navController, animated: true)
         }))
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive, handler: { [weak self] _ in
-            self?.categories.remove(at: indexPath.item)
-            UserDefaults.standard.set(self?.categories, forKey: "categories")
-            self?.collectionView.reloadData()
+            guard let self = self else { return }
+            do {
+                try TrackerCategoryStore.shared.deleteCategory(category)
+                self.categories.remove(at: indexPath.item)
+                self.collectionView.reloadData()
 
-            let isEmpty = self?.categories.isEmpty ?? true
-            self?.emptyCategoryImageView.isHidden = !isEmpty
-            self?.emptyCategoryLabel.isHidden = !isEmpty
-            self?.collectionView.isHidden = isEmpty
+                let isEmpty = self.categories.isEmpty
+                self.emptyCategoryImageView.isHidden = !isEmpty
+                self.emptyCategoryLabel.isHidden = !isEmpty
+                self.collectionView.isHidden = isEmpty
+            } catch {
+                print("Ошибка при удалении категории: \(error)")
+            }
         }))
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         self.present(alert, animated: true, completion: nil)
@@ -183,7 +192,7 @@ extension CategoryViewController: UICollectionViewDataSource, UICollectionViewDe
         }
 
         let category = categories[indexPath.item]
-        cell.configure(with: category, isSelected: category == selectedCategory)
+        cell.configure(with: category.name ?? "", isSelected: category == selectedCategory)
         
         let position: CategoryCell.CellPosition
         if categories.count == 1 {
