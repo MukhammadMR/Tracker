@@ -47,6 +47,18 @@ final class TrackerStore: NSObject {
         try context.save()
     }
 
+    func addTracker(_ tracker: Tracker) throws {
+        let trackerCoreData = TrackerCoreData(context: context)
+        trackerCoreData.id = tracker.id
+        trackerCoreData.name = tracker.name
+        trackerCoreData.colorHex = tracker.color.toHexString()
+        trackerCoreData.emoji = tracker.emoji
+        trackerCoreData.schedule = tracker.schedule.joined(separator: ",")
+        let category = fetchOrCreateCategory(named: tracker.categoryName)
+        trackerCoreData.category = category
+        try context.save()
+    }
+
     func deleteTracker(_ tracker: TrackerCoreData) throws {
         context.delete(tracker)
         try context.save()
@@ -82,6 +94,39 @@ final class TrackerStore: NSObject {
             categoryName: trackerCoreData.category?.name ?? "",
             schedule: schedule.map { $0.rawValue }
         )
+    }
+
+    // MARK: - Fetched Results Controller Helpers
+
+    func performInitialFetch() throws {
+        try fetchedResultsController.performFetch()
+    }
+
+    var fetchedTrackers: [TrackerCoreData] {
+        return fetchedResultsController.fetchedObjects ?? []
+    }
+
+    var fetchedTrackersModel: [Tracker] {
+        return fetchedTrackers.compactMap { makeTracker(from: $0) }
+    }
+    
+    func fetchedTrackersGroupedByCategory() -> [String: [Tracker]] {
+        let trackers = fetchedTrackersModel
+        let grouped = Dictionary(grouping: trackers) { $0.categoryName }
+        return grouped
+    }
+
+    private func fetchOrCreateCategory(named name: String) -> TrackerCategoryCoreData {
+        let request: NSFetchRequest<TrackerCategoryCoreData> = TrackerCategoryCoreData.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", name)
+
+        if let existing = try? context.fetch(request).first {
+            return existing
+        }
+
+        let newCategory = TrackerCategoryCoreData(context: context)
+        newCategory.name = name
+        return newCategory
     }
 }
 

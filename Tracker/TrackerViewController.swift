@@ -36,6 +36,9 @@ final class TrackerViewController: UIViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        try? TrackerStore.shared.performInitialFetch()
+        let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
+        categories = grouped.map { TrackerCategory(title: $0.key, trackers: $0.value) }
         view.backgroundColor = .systemBackground
         
         title = "Трекеры"
@@ -214,6 +217,7 @@ extension TrackerViewController: CreateTrackerViewControllerDelegate {
             let newCategory = TrackerCategory(title: tracker.categoryName, trackers: [tracker])
             categories.append(newCategory)
         }
+        try? TrackerStore.shared.addTracker(tracker)
         collectionView?.reloadData()
         updatePlaceholderVisibility()
     }
