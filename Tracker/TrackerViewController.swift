@@ -19,7 +19,7 @@ final class TrackerViewController: UIViewController {
     private let emptyLabel: UILabel = {
         let label = UILabel()
         label.text = "Что будем отслеживать?"
-        label.font = UIFont(name: "YP-Medium", size: 12)
+        label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         label.textColor = UIColor(named: "Black [day]")
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -91,6 +91,7 @@ final class TrackerViewController: UIViewController {
         collectionView.delegate = self
         collectionView.register(TrackerSectionHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "SectionHeader")
         updatePlaceholderVisibility()
+        self.loadCompletedTrackers()
 
         view.addSubview(emptyImageView)
         view.addSubview(emptyLabel)
@@ -116,6 +117,7 @@ final class TrackerViewController: UIViewController {
     @objc
     private func dateChanged(_ sender: UIDatePicker) {
         currentDate = sender.date
+        loadCompletedTrackers()
         collectionView?.reloadData()
     }
     
@@ -134,6 +136,10 @@ final class TrackerViewController: UIViewController {
         let isEmpty = categories.flatMap { $0.trackers }.isEmpty
         emptyImageView.isHidden = !isEmpty
         emptyLabel.isHidden = !isEmpty
+    }
+    
+    private func loadCompletedTrackers() {
+        completedTrackers = TrackerRecordStore.shared.records()
     }
 }
 
@@ -167,15 +173,17 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
         cell.configure(with: tracker, completedDays: completedDays, isCompleted: isCompletedToday, isFutureDate: isFutureDate)
         cell.onPlusButtonTapped = { [weak self] in
             guard let self = self else { return }
-            if let index = self.completedTrackers.firstIndex(where: {
-                $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: self.currentDate)
-            }) {
-                self.completedTrackers.remove(at: index)
-            } else {
-                let record = TrackerRecord(id: UUID(), date: self.currentDate, trackerID: tracker.id)
-                self.completedTrackers.append(record)
+            do {
+                if TrackerRecordStore.shared.hasRecord(for: tracker.id, on: self.currentDate) {
+                    try TrackerRecordStore.shared.deleteRecord(trackerID: tracker.id, on: self.currentDate)
+                } else {
+                    try TrackerRecordStore.shared.addRecord(id: UUID(), date: self.currentDate, tracker: tracker)
+                }
+                self.loadCompletedTrackers()
+                self.collectionView?.reloadItems(at: [indexPath])
+            } catch {
+                print("Failed to toggle record: \(error)")
             }
-            self.collectionView?.reloadItems(at: [indexPath])
         }
         return cell
     }
