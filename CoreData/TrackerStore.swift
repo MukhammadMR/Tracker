@@ -43,7 +43,7 @@ final class TrackerStore: NSObject {
         tracker.colorHex = color.toHexString()
         tracker.emoji = emoji
         tracker.schedule = schedule.map { $0.rawValue }.joined(separator: ",")
-
+        tracker.isPinned = false
         try context.save()
     }
 
@@ -56,6 +56,7 @@ final class TrackerStore: NSObject {
         trackerCoreData.schedule = tracker.schedule.joined(separator: ",")
         let category = fetchOrCreateCategory(named: tracker.categoryName)
         trackerCoreData.category = category
+        trackerCoreData.isPinned = false
         try context.save()
     }
 
@@ -64,11 +65,42 @@ final class TrackerStore: NSObject {
         try context.save()
     }
 
+    func deleteTracker(id: UUID) throws {
+        let recReq: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
+        recReq.predicate = NSPredicate(format: "tracker.id == %@", id as CVarArg)
+        if let records = try? context.fetch(recReq) {
+            for r in records { context.delete(r) }
+        }
+        if let core = fetchTracker(by: id) {
+            context.delete(core)
+        }
+        try context.save()
+    }
+
     func updateTracker(_ tracker: TrackerCoreData, name: String, color: UIColor, emoji: String, schedule: [WeekDay]) throws {
         tracker.name = name
         tracker.colorHex = color.toHexString()
         tracker.emoji = emoji
         tracker.schedule = schedule.map { $0.rawValue }.joined(separator: ",")
+
+        try context.save()
+    }
+
+    func updateTracker(_ tracker: Tracker) throws {
+        let request: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", tracker.id as CVarArg)
+        request.fetchLimit = 1
+        guard let core = try context.fetch(request).first else { return }
+
+        core.name = tracker.name
+        core.colorHex = tracker.color.toHexString()
+        core.emoji = tracker.emoji
+        core.schedule = tracker.schedule.joined(separator: ",")
+
+        if core.category?.name != tracker.categoryName {
+            let category = fetchOrCreateCategory(named: tracker.categoryName)
+            core.category = category
+        }
 
         try context.save()
     }
@@ -111,9 +143,39 @@ final class TrackerStore: NSObject {
     }
     
     func fetchedTrackersGroupedByCategory() -> [String: [Tracker]] {
-        let trackers = fetchedTrackersModel
-        let grouped = Dictionary(grouping: trackers) { $0.categoryName }
+        let trackers = fetchedTrackers
+        let pinnedCore = trackers.filter { $0.isPinned }
+        let regularCore = trackers.filter { !$0.isPinned }
+        let pinned = pinnedCore.compactMap { makeTracker(from: $0) }
+        let regular = regularCore.compactMap { makeTracker(from: $0) }
+        var grouped = Dictionary(grouping: regular) { $0.categoryName }
+        if !pinned.isEmpty {
+            grouped["Закрепленные"] = pinned
+        }
         return grouped
+    }
+
+    private func fetchTracker(by id: UUID) -> TrackerCoreData? {
+        let request: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
+    }
+
+    func isPinned(_ id: UUID) -> Bool {
+        return fetchTracker(by: id)?.isPinned ?? false
+    }
+
+    func togglePinned(_ id: UUID) throws {
+        guard let core = fetchTracker(by: id) else { return }
+        core.isPinned.toggle()
+        try context.save()
+    }
+
+    func setPinned(_ id: UUID, _ value: Bool) throws {
+        guard let core = fetchTracker(by: id) else { return }
+        core.isPinned = value
+        try context.save()
     }
 
     private func fetchOrCreateCategory(named name: String) -> TrackerCategoryCoreData {

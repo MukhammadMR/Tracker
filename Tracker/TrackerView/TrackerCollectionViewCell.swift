@@ -131,4 +131,14 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     @objc private func plusButtonTapped() {
         toggleTrackerCompletion()
     }
+
+    func isPointInsidePlusOrDays(_ point: CGPoint) -> Bool {
+        return plusButton.frame.contains(point) || daysLabel.frame.contains(point)
+    }
+
+    func targetedCardPreview() -> UITargetedPreview {
+        let parameters = UIPreviewParameters()
+        parameters.backgroundColor = .clear
+        return UITargetedPreview(view: cardView, parameters: parameters)
+    }
 }

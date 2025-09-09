@@ -45,7 +45,6 @@ final class TrackerRecordStore {
         }
     }
 
-    // Compatibility overload: allow adding a record when caller passes domain `Tracker`
     func addRecord(id: UUID, date: Date, tracker: Tracker) throws {
         try context.performAndWait {
             let request: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
@@ -160,6 +159,49 @@ func deleteRecord(trackerID: UUID, on date: Date) throws {
             context.delete(found)
             try context.save()
         }
+    }
+}
+
+// MARK: - Convenience: add by trackerID
+func addRecord(date: Date, trackerID: UUID) throws {
+    try context.performAndWait {
+        let req: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        req.predicate = NSPredicate(format: "id == %@", trackerID as CVarArg)
+        req.fetchLimit = 1
+        guard let core = try context.fetch(req).first else { return }
+        let rec = TrackerRecordCoreData(context: context)
+        rec.id = UUID()
+        rec.date = normalized(date)
+        rec.tracker = core
+        try context.save()
+    }
+}
+
+// MARK: - Toggle record (create/delete) for a tracker on a day
+func toggleRecord(for trackerID: UUID, on date: Date) throws {
+    try context.performAndWait {
+        let start = normalized(date)
+        let end = nextDay(after: date)
+
+        let r: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
+        r.predicate = NSPredicate(format: "tracker.id == %@ AND date >= %@ AND date < %@", trackerID as CVarArg, start as NSDate, end as NSDate)
+        r.fetchLimit = 1
+        if let existing = try context.fetch(r).first {
+            context.delete(existing)
+            try context.save()
+            return
+        }
+        
+        let t: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        t.predicate = NSPredicate(format: "id == %@", trackerID as CVarArg)
+        t.fetchLimit = 1
+        guard let trackerCore = try context.fetch(t).first else { return }
+
+        let rec = TrackerRecordCoreData(context: context)
+        rec.id = UUID()
+        rec.date = start
+        rec.tracker = trackerCore
+        try context.save()
     }
 }
 }
