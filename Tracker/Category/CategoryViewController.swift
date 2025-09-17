@@ -12,7 +12,7 @@ final class CategoryViewController: UIViewController {
     weak var delegate: CategoryViewControllerDelegate?
     
     private var selectedCategory: TrackerCategoryCoreData?
-    private var categories: [TrackerCategoryCoreData] = []
+    private var viewModel = CategoryViewModel()
     
     private let emptyCategoryLabel: UILabel = {
         let label = UILabel()
@@ -49,12 +49,7 @@ final class CategoryViewController: UIViewController {
         super.viewDidLoad()
         navigationItem.title = "Категория"
         view.backgroundColor = .systemBackground
-        do {
-            let categoryStore = TrackerCategoryStore.shared
-            categories = try categoryStore.fetchAllCategories()
-        } catch {
-            print("Ошибка при загрузке категорий: \(error)")
-        }
+        
         selectedCategory = delegate?.currentlySelectedCategory as? TrackerCategoryCoreData
         newCategoryButton.addTarget(self, action: #selector(newCategoryButtonTapped), for: .touchUpInside)
         
@@ -99,12 +94,32 @@ final class CategoryViewController: UIViewController {
             newCategoryButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             newCategoryButton.heightAnchor.constraint(equalToConstant: 60)
         ])
+        
+        bindViewModel()
+        viewModel.fetchCategories()
+    }
+    
+    private func bindViewModel() {
+        viewModel.onCategoriesUpdated = { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+                let isEmpty = self.viewModel.categories.isEmpty
+                self.emptyCategoryImageView.isHidden = !isEmpty
+                self.emptyCategoryLabel.isHidden = !isEmpty
+                self.collectionView.isHidden = isEmpty
+            }
+        }
+        
+        viewModel.onError = { error in
+            print("Ошибка: \(error)")
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         collectionView.reloadData()
-        let isEmpty = categories.isEmpty
+        let isEmpty = viewModel.categories.isEmpty
         emptyCategoryImageView.isHidden = !isEmpty
         emptyCategoryLabel.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
@@ -114,18 +129,8 @@ final class CategoryViewController: UIViewController {
         let newCategoryVC = NewCategoryViewController()
         newCategoryVC.onCategoryCreated = { [weak self] newCategoryName in
             print("Создана новая категория: \(newCategoryName)")
-            guard let self = self else { return }
-            guard let newCategory = try? TrackerCategoryStore.shared.addCategory(name: newCategoryName) else { return }
-            self.categories.append(newCategory)
-            let indexPath = IndexPath(item: self.categories.count - 1, section: 0)
-            self.collectionView.performBatchUpdates {
-                self.collectionView.insertItems(at: [indexPath])
-            }
-            let isEmpty = self.categories.isEmpty
-            self.emptyCategoryImageView.isHidden = !isEmpty
-            self.emptyCategoryLabel.isHidden = !isEmpty
-            self.collectionView.isHidden = isEmpty
-            self.selectedCategory = nil
+            self?.viewModel.addCategory(name: newCategoryName)
+            self?.selectedCategory = nil
         }
         let navigationController = UINavigationController(rootViewController: newCategoryVC)
         present(navigationController, animated: true)
@@ -143,38 +148,21 @@ final class CategoryViewController: UIViewController {
         let point = gesture.location(in: collectionView)
         guard let indexPath = collectionView.indexPathForItem(at: point) else { return }
 
-        let category = categories[indexPath.item]
+        let category = viewModel.categories[indexPath.item]
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Редактировать", style: .default, handler: { _ in
             let editVC = NewCategoryViewController()
             editVC.categoryToEdit = category.name ?? ""
             editVC.onCategoryEdited = { [weak self] updatedCategoryName in
                 guard let self = self else { return }
-                do {
-                    try TrackerCategoryStore.shared.updateCategory(category, name: updatedCategoryName)
-                    category.name = updatedCategoryName
-                    self.collectionView.reloadData()
-                } catch {
-                    print("Ошибка при обновлении категории: \(error)")
-                }
+                self.viewModel.updateCategory(category, name: updatedCategoryName)
             }
             let navController = UINavigationController(rootViewController: editVC)
             self.present(navController, animated: true)
         }))
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive, handler: { [weak self] _ in
             guard let self = self else { return }
-            do {
-                try TrackerCategoryStore.shared.deleteCategory(category)
-                self.categories.remove(at: indexPath.item)
-                self.collectionView.reloadData()
-
-                let isEmpty = self.categories.isEmpty
-                self.emptyCategoryImageView.isHidden = !isEmpty
-                self.emptyCategoryLabel.isHidden = !isEmpty
-                self.collectionView.isHidden = isEmpty
-            } catch {
-                print("Ошибка при удалении категории: \(error)")
-            }
+            self.viewModel.deleteCategory(category)
         }))
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         self.present(alert, animated: true, completion: nil)
@@ -183,7 +171,7 @@ final class CategoryViewController: UIViewController {
 
 extension CategoryViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return categories.count
+        return viewModel.categories.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -191,15 +179,15 @@ extension CategoryViewController: UICollectionViewDataSource, UICollectionViewDe
             return UICollectionViewCell()
         }
 
-        let category = categories[indexPath.item]
+        let category = viewModel.categories[indexPath.item]
         cell.configure(with: category.name ?? "", isSelected: category == selectedCategory)
         
         let position: CategoryCell.CellPosition
-        if categories.count == 1 {
+        if viewModel.categories.count == 1 {
             position = .single
         } else if indexPath.item == 0 {
             position = .top
-        } else if indexPath.item == categories.count - 1 {
+        } else if indexPath.item == viewModel.categories.count - 1 {
             position = .bottom
         } else {
             position = .middle
@@ -210,7 +198,7 @@ extension CategoryViewController: UICollectionViewDataSource, UICollectionViewDe
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let category = categories[indexPath.item]
+        let category = viewModel.categories[indexPath.item]
         selectCategory(category)
     }
 }
