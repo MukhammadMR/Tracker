@@ -11,8 +11,8 @@ import UIKit
 final class CategoryViewController: UIViewController {
     weak var delegate: CategoryViewControllerDelegate?
     
-    private var selectedCategory: TrackerCategoryCoreData?
-    private var categories: [TrackerCategoryCoreData] = []
+    private var selectedCategoryName: String?
+    private var viewModel = CategoryViewModel()
     
     private let emptyCategoryLabel: UILabel = {
         let label = UILabel()
@@ -33,7 +33,7 @@ final class CategoryViewController: UIViewController {
         return imageView
     }()
     
-    private var collectionView: UICollectionView!
+    private var tableView: UITableView!
     
     private let newCategoryButton: UIButton = {
         let button = UIButton(type: .system)
@@ -49,33 +49,30 @@ final class CategoryViewController: UIViewController {
         super.viewDidLoad()
         navigationItem.title = "Категория"
         view.backgroundColor = .systemBackground
-        do {
-            let categoryStore = TrackerCategoryStore.shared
-            categories = try categoryStore.fetchAllCategories()
-        } catch {
-            print("Ошибка при загрузке категорий: \(error)")
+        
+        if let selected = delegate?.currentlySelectedCategory as? TrackerCategoryCoreData {
+            selectedCategoryName = selected.name
+        } else if let name = delegate?.currentlySelectedCategory as? String {
+            selectedCategoryName = name
         }
-        selectedCategory = delegate?.currentlySelectedCategory as? TrackerCategoryCoreData
+        
         newCategoryButton.addTarget(self, action: #selector(newCategoryButtonTapped), for: .touchUpInside)
         
-        let layout = UICollectionViewFlowLayout()
-        layout.itemSize = CGSize(width: 343, height: 75)
-        layout.minimumLineSpacing = 0
-        
-        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.backgroundColor = .clear
-        collectionView.delegate = self
-        collectionView.dataSource = self
-        collectionView.showsVerticalScrollIndicator = false
-        collectionView.register(CategoryCell.self, forCellWithReuseIdentifier: "CategoryCell")
+        tableView = UITableView(frame: .zero, style: .plain)
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.separatorStyle = .none
+        tableView.showsVerticalScrollIndicator = false
+        tableView.register(CategoryCell.self, forCellReuseIdentifier: "CategoryCell")
+        tableView.rowHeight = 75
         
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        collectionView.addGestureRecognizer(longPressGesture)
+        tableView.addGestureRecognizer(longPressGesture)
         
         view.addSubview(emptyCategoryImageView)
         view.addSubview(emptyCategoryLabel)
-        view.addSubview(collectionView)
+        view.addSubview(tableView)
         view.addSubview(newCategoryButton)
         
         NSLayoutConstraint.activate([
@@ -89,117 +86,111 @@ final class CategoryViewController: UIViewController {
             emptyCategoryLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             emptyCategoryLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            collectionView.bottomAnchor.constraint(equalTo: newCategoryButton.topAnchor, constant: -16),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: newCategoryButton.topAnchor, constant: -16),
             
             newCategoryButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             newCategoryButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             newCategoryButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             newCategoryButton.heightAnchor.constraint(equalToConstant: 60)
         ])
+        
+        bindViewModel()
+        viewModel.fetchCategories()
+    }
+    
+    private func bindViewModel() {
+        viewModel.onCategoriesUpdated = { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+                let isEmpty = self.viewModel.categories.isEmpty
+                self.emptyCategoryImageView.isHidden = !isEmpty
+                self.emptyCategoryLabel.isHidden = !isEmpty
+                self.tableView.isHidden = isEmpty
+            }
+        }
+        
+        viewModel.onError = { error in
+            print("Ошибка: \(error)")
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        collectionView.reloadData()
-        let isEmpty = categories.isEmpty
+        tableView.reloadData()
+        let isEmpty = viewModel.categories.isEmpty
         emptyCategoryImageView.isHidden = !isEmpty
         emptyCategoryLabel.isHidden = !isEmpty
-        collectionView.isHidden = isEmpty
+        tableView.isHidden = isEmpty
     }
     
     @objc private func newCategoryButtonTapped() {
         let newCategoryVC = NewCategoryViewController()
         newCategoryVC.onCategoryCreated = { [weak self] newCategoryName in
             print("Создана новая категория: \(newCategoryName)")
-            guard let self = self else { return }
-            guard let newCategory = try? TrackerCategoryStore.shared.addCategory(name: newCategoryName) else { return }
-            self.categories.append(newCategory)
-            let indexPath = IndexPath(item: self.categories.count - 1, section: 0)
-            self.collectionView.performBatchUpdates {
-                self.collectionView.insertItems(at: [indexPath])
-            }
-            let isEmpty = self.categories.isEmpty
-            self.emptyCategoryImageView.isHidden = !isEmpty
-            self.emptyCategoryLabel.isHidden = !isEmpty
-            self.collectionView.isHidden = isEmpty
-            self.selectedCategory = nil
+            self?.viewModel.addCategory(name: newCategoryName)
+            self?.selectedCategoryName = nil
         }
         let navigationController = UINavigationController(rootViewController: newCategoryVC)
         present(navigationController, animated: true)
     }
     
     func selectCategory(_ category: TrackerCategoryCoreData) {
-        selectedCategory = category
+        selectedCategoryName = category.name
         delegate?.didSelectCategory(category.name ?? "")
-        collectionView.reloadData()
+        tableView.reloadData()
         dismiss(animated: true, completion: nil)
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
-        let point = gesture.location(in: collectionView)
-        guard let indexPath = collectionView.indexPathForItem(at: point) else { return }
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point) else { return }
 
-        let category = categories[indexPath.item]
+        let category = viewModel.categories[indexPath.row]
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Редактировать", style: .default, handler: { _ in
             let editVC = NewCategoryViewController()
             editVC.categoryToEdit = category.name ?? ""
             editVC.onCategoryEdited = { [weak self] updatedCategoryName in
                 guard let self = self else { return }
-                do {
-                    try TrackerCategoryStore.shared.updateCategory(category, name: updatedCategoryName)
-                    category.name = updatedCategoryName
-                    self.collectionView.reloadData()
-                } catch {
-                    print("Ошибка при обновлении категории: \(error)")
-                }
+                self.viewModel.updateCategory(category, name: updatedCategoryName)
             }
             let navController = UINavigationController(rootViewController: editVC)
             self.present(navController, animated: true)
         }))
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive, handler: { [weak self] _ in
             guard let self = self else { return }
-            do {
-                try TrackerCategoryStore.shared.deleteCategory(category)
-                self.categories.remove(at: indexPath.item)
-                self.collectionView.reloadData()
-
-                let isEmpty = self.categories.isEmpty
-                self.emptyCategoryImageView.isHidden = !isEmpty
-                self.emptyCategoryLabel.isHidden = !isEmpty
-                self.collectionView.isHidden = isEmpty
-            } catch {
-                print("Ошибка при удалении категории: \(error)")
-            }
+            self.viewModel.deleteCategory(category)
         }))
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         self.present(alert, animated: true, completion: nil)
     }
 }
 
-extension CategoryViewController: UICollectionViewDataSource, UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return categories.count
+extension CategoryViewController: UITableViewDataSource, UITableViewDelegate {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return viewModel.categories.count
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CategoryCell", for: indexPath) as? CategoryCell else {
-            return UICollectionViewCell()
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath) as? CategoryCell else {
+            return UITableViewCell()
         }
 
-        let category = categories[indexPath.item]
-        cell.configure(with: category.name ?? "", isSelected: category == selectedCategory)
+        let category = viewModel.categories[indexPath.row]
+        let isSelected = category.name == selectedCategoryName
+        cell.configure(with: category.name ?? "", isSelected: isSelected)
         
         let position: CategoryCell.CellPosition
-        if categories.count == 1 {
+        if viewModel.categories.count == 1 {
             position = .single
-        } else if indexPath.item == 0 {
+        } else if indexPath.row == 0 {
             position = .top
-        } else if indexPath.item == categories.count - 1 {
+        } else if indexPath.row == viewModel.categories.count - 1 {
             position = .bottom
         } else {
             position = .middle
@@ -209,90 +200,8 @@ extension CategoryViewController: UICollectionViewDataSource, UICollectionViewDe
         return cell
     }
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let category = categories[indexPath.item]
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let category = viewModel.categories[indexPath.row]
         selectCategory(category)
-    }
-}
-
-final class CategoryCell: UICollectionViewCell {
-    private let titleLabel = UILabel()
-    private let checkmarkImageView = UIImageView()
-    private let separator: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(red: 0.898, green: 0.909, blue: 0.921, alpha: 1)
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    enum CellPosition {
-        case top, middle, bottom, single
-    }
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setupUI() {
-        contentView.backgroundColor = UIColor(red: 0.901, green: 0.91, blue: 0.921, alpha: 0.3)
-
-        titleLabel.font = UIFont(name: "YP-Regular", size: 17)
-        titleLabel.textColor = UIColor(named: "Black (day)")
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(titleLabel)
-
-        checkmarkImageView.image = UIImage(named: "blue_checkmark")
-        checkmarkImageView.contentMode = .scaleAspectFit
-        checkmarkImageView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(checkmarkImageView)
-        
-        contentView.addSubview(separator)
-
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: checkmarkImageView.leadingAnchor, constant: -8),
-
-            checkmarkImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            checkmarkImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            checkmarkImageView.widthAnchor.constraint(equalToConstant: 14.3),
-            checkmarkImageView.heightAnchor.constraint(equalToConstant: 14.19),
-            
-            separator.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            separator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            separator.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            separator.heightAnchor.constraint(equalToConstant: 1)
-        ])
-    }
-    
-    func updateCorners(for position: CellPosition) {
-        var maskedCorners: CACornerMask = []
-
-        switch position {
-        case .top:
-            maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        case .bottom:
-            maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-        case .middle:
-            maskedCorners = []
-        case .single:
-            maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-        }
-
-        contentView.layer.cornerRadius = 16
-        contentView.layer.maskedCorners = maskedCorners
-        contentView.layer.masksToBounds = true
-        
-        separator.isHidden = position == .bottom || position == .single
-    }
-
-    func configure(with title: String, isSelected: Bool) {
-        titleLabel.text = title
-        checkmarkImageView.isHidden = !isSelected
     }
 }

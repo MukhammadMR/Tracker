@@ -38,7 +38,7 @@ final class TrackerViewController: UIViewController {
         super.viewDidLoad()
         try? TrackerStore.shared.performInitialFetch()
         let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
-        categories = grouped.map { TrackerCategory(title: $0.key, trackers: $0.value) }
+        rebuildCategories(from: grouped)
         view.backgroundColor = .systemBackground
         
         title = "Трекеры"
@@ -132,6 +132,19 @@ final class TrackerViewController: UIViewController {
     }
     
     // MARK: - Helpers
+    private func rebuildCategories(from grouped: [String: [Tracker]]) {
+        var ordered: [TrackerCategory] = []
+        if let pinned = grouped["Закрепленные"], !pinned.isEmpty {
+            ordered.append(TrackerCategory(title: "Закрепленные", trackers: pinned))
+        }
+        for key in grouped.keys.sorted() where key != "Закрепленные" {
+            if let trackers = grouped[key], !trackers.isEmpty {
+                ordered.append(TrackerCategory(title: key, trackers: trackers))
+            }
+        }
+        categories = ordered
+    }
+    
     private func updatePlaceholderVisibility() {
         let isEmpty = categories.flatMap { $0.trackers }.isEmpty
         emptyImageView.isHidden = !isEmpty
@@ -174,11 +187,7 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
         cell.onPlusButtonTapped = { [weak self] in
             guard let self = self else { return }
             do {
-                if TrackerRecordStore.shared.hasRecord(for: tracker.id, on: self.currentDate) {
-                    try TrackerRecordStore.shared.deleteRecord(trackerID: tracker.id, on: self.currentDate)
-                } else {
-                    try TrackerRecordStore.shared.addRecord(id: UUID(), date: self.currentDate, tracker: tracker)
-                }
+                try TrackerRecordStore.shared.toggleRecord(for: tracker.id, on: self.currentDate)
                 self.loadCompletedTrackers()
                 self.collectionView?.reloadItems(at: [indexPath])
             } catch {
@@ -226,7 +235,78 @@ extension TrackerViewController: CreateTrackerViewControllerDelegate {
             categories.append(newCategory)
         }
         try? TrackerStore.shared.addTracker(tracker)
+        let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
+        rebuildCategories(from: grouped)
         collectionView?.reloadData()
         updatePlaceholderVisibility()
     }
+}
+
+// MARK: - Context Menu (card-only)
+extension TrackerViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        guard let cell = collectionView.cellForItem(at: indexPath) as? TrackerCollectionViewCell else { return nil }
+        let pointInCell = collectionView.convert(point, to: cell)
+        if cell.isPointInsidePlusOrDays(pointInCell) { return nil }
+        return UIContextMenuConfiguration(identifier: indexPath as NSCopying, previewProvider: nil) { _ in
+            let tracker = self.categories[indexPath.section].trackers[indexPath.item]
+            let pinnedNow = TrackerStore.shared.isPinned(tracker.id)
+            let pinTitle = pinnedNow ? "Открепить" : "Закрепить"
+            let pinImage = UIImage(systemName: "pin")
+            let pin = UIAction(title: pinTitle, image: pinImage) { _ in
+                try? TrackerStore.shared.togglePinned(tracker.id)
+                let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
+                self.rebuildCategories(from: grouped)
+                self.collectionView?.reloadData()
+            }
+            let edit = UIAction(title: "Редактировать", image: UIImage(systemName: "pencil")) { [weak self] _ in
+                guard let self = self else { return }
+                let trackerToEdit = tracker
+                let editVC = CreateTrackerViewController()
+                editVC.configureForEditing(trackerToEdit) { updated in
+                    try? TrackerStore.shared.updateTracker(updated)
+                    let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
+                    self.rebuildCategories(from: grouped)
+                    self.collectionView?.reloadData()
+                }
+                let nav = UINavigationController(rootViewController: editVC)
+                nav.modalPresentationStyle = .pageSheet
+                self.present(nav, animated: true)
+            }
+            let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self = self else { return }
+                let alert = UIAlertController(title: "Вы уверены что хотите удалить трекер?",
+                                              message: nil,
+                                              preferredStyle: .actionSheet)
+                alert.addAction(UIAlertAction(title: "Удалить", style: .destructive, handler: { _ in
+                    try? TrackerStore.shared.deleteTracker(id: tracker.id)
+                    let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
+                    self.rebuildCategories(from: grouped)
+                    self.collectionView?.reloadData()
+                    self.updatePlaceholderVisibility()
+                }))
+                alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+
+                if let cell = collectionView.cellForItem(at: indexPath) {
+                    alert.popoverPresentationController?.sourceView = cell
+                    alert.popoverPresentationController?.sourceRect = cell.bounds
+                }
+                self.present(alert, animated: true)
+            }
+            return UIMenu(children: [pin, edit, delete])
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let indexPath = configuration.identifier as? IndexPath,
+              let cell = collectionView.cellForItem(at: indexPath) as? TrackerCollectionViewCell else { return nil }
+        return cell.targetedCardPreview()
+    }
+
+    func collectionView(_ collectionView: UICollectionView, previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let indexPath = configuration.identifier as? IndexPath,
+              let cell = collectionView.cellForItem(at: indexPath) as? TrackerCollectionViewCell else { return nil }
+        return cell.targetedCardPreview()
+    }
+    
 }

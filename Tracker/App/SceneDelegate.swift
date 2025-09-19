@@ -17,6 +17,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         self.window = window
 
+        let hasSeenOnboarding = UserDefaults.standard.bool(forKey: "hasSeenOnboarding")
+
+        if hasSeenOnboarding {
+            window.rootViewController = makeMainTabBarController()
+        } else {
+            let onboardingVC = OnboardingPageViewController()
+            onboardingVC.modalPresentationStyle = .fullScreen
+            window.rootViewController = onboardingVC
+        }
+        window.makeKeyAndVisible()
+    }
+
+     func makeMainTabBarController() -> UITabBarController {
         let trackerViewController = TrackerViewController()
         let trackerNavigationController = UINavigationController(rootViewController: trackerViewController)
         trackerNavigationController.navigationBar.prefersLargeTitles = true
@@ -39,8 +52,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if #available(iOS 15.0, *) {
             tabBarController.tabBar.scrollEdgeAppearance = appearance
         }
-        window.rootViewController = tabBarController
-        window.makeKeyAndVisible()
+        return tabBarController
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
