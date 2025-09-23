@@ -26,12 +26,10 @@ final class TrackerViewController: UIViewController {
         return label
     }()
     
-    private let searchTextField: UISearchTextField = {
-        let textField = UISearchTextField()
-        textField.placeholder = "Поиск"
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        return textField
-    }()
+    // Search
+    private var searchVC: SearchViewController?
+    private var filteredCategories: [TrackerCategory] = []
+    private var isSearching: Bool = false
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -53,19 +51,16 @@ final class TrackerViewController: UIViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
         datePicker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
         
-        view.addSubview(searchTextField)
+        // Search Controller
+        let searchVC = SearchViewController()
+        self.searchVC = searchVC
+        navigationItem.searchController = searchVC.searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+        searchVC.onSearchTextChanged = { [weak self] text in
+            self?.filterContentForSearchText(text)
+        }
 
-        let separator = UIView()
-        separator.backgroundColor = UIColor(named: "Gray")
-        separator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(separator)
-
-        NSLayoutConstraint.activate([
-            separator.topAnchor.constraint(equalTo: searchTextField.bottomAnchor, constant: 8),
-            separator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            separator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            separator.heightAnchor.constraint(equalToConstant: 1)
-        ])
 
         let layout = UICollectionViewFlowLayout()
         layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
@@ -80,7 +75,7 @@ final class TrackerViewController: UIViewController {
         view.addSubview(collectionView)
 
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: separator.bottomAnchor, constant: 16),
+            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -97,18 +92,10 @@ final class TrackerViewController: UIViewController {
         view.addSubview(emptyLabel)
 
         NSLayoutConstraint.activate([
-            searchTextField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 7),
-            searchTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            searchTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            searchTextField.heightAnchor.constraint(equalToConstant: 36)
-        ])
-
-        NSLayoutConstraint.activate([
             emptyImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyImageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             emptyImageView.widthAnchor.constraint(equalToConstant: 80),
             emptyImageView.heightAnchor.constraint(equalToConstant: 80),
-            
             emptyLabel.topAnchor.constraint(equalTo: emptyImageView.bottomAnchor, constant: 8),
             emptyLabel.centerXAnchor.constraint(equalTo: emptyImageView.centerXAnchor)
         ])
@@ -146,9 +133,43 @@ final class TrackerViewController: UIViewController {
     }
     
     private func updatePlaceholderVisibility() {
-        let isEmpty = categories.flatMap { $0.trackers }.isEmpty
+        let showingCategories = isSearching ? filteredCategories : categories
+        let isEmpty = showingCategories.flatMap { $0.trackers }.isEmpty
         emptyImageView.isHidden = !isEmpty
         emptyLabel.isHidden = !isEmpty
+    }
+
+    private func showEmptySearchStateIfNeeded(for searchText: String) {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if isSearching && filteredCategories.flatMap({ $0.trackers }).isEmpty && !trimmed.isEmpty {
+            emptyImageView.isHidden = false
+            emptyLabel.isHidden = false
+            emptyImageView.image = UIImage(named: "error")
+            emptyLabel.text = "Ничего не найдено"
+        } else {
+            emptyImageView.image = UIImage(named: "dizzy")
+            emptyLabel.text = "Что будем отслеживать?"
+            updatePlaceholderVisibility()
+        }
+    }
+
+    private func filterContentForSearchText(_ searchText: String) {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        isSearching = !trimmed.isEmpty
+        if isSearching {
+            let lowercased = trimmed.lowercased()
+            filteredCategories = categories.compactMap { category in
+                let filteredTrackers = category.trackers.filter {
+                    $0.name.lowercased().contains(lowercased)
+                }
+                if filteredTrackers.isEmpty { return nil }
+                return TrackerCategory(title: category.title, trackers: filteredTrackers)
+            }
+        } else {
+            filteredCategories = []
+        }
+        collectionView?.reloadData()
+        showEmptySearchStateIfNeeded(for: searchText)
     }
     
     private func loadCompletedTrackers() {
@@ -166,18 +187,21 @@ private func formattedDate(_ date: Date) -> String {
 // MARK: - UICollectionViewDataSource & Delegate
 extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return categories.count
+        let showingCategories = isSearching ? filteredCategories : categories
+        return showingCategories.count
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return categories[section].trackers.count
+        let showingCategories = isSearching ? filteredCategories : categories
+        return showingCategories[section].trackers.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TrackerCell", for: indexPath) as? TrackerCollectionViewCell else {
             return UICollectionViewCell()
         }
-        let tracker = categories[indexPath.section].trackers[indexPath.item]
+        let showingCategories = isSearching ? filteredCategories : categories
+        let tracker = showingCategories[indexPath.section].trackers[indexPath.item]
         let completedDays = completedTrackers.filter { $0.trackerID == tracker.id }.count
         let isCompletedToday = completedTrackers.contains {
             $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: currentDate)
@@ -201,9 +225,9 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
         guard kind == UICollectionView.elementKindSectionHeader else {
             return UICollectionReusableView()
         }
-
+        let showingCategories = isSearching ? filteredCategories : categories
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "SectionHeader", for: indexPath) as! TrackerSectionHeaderView
-        header.configure(with: categories[indexPath.section].title)
+        header.configure(with: showingCategories[indexPath.section].title)
         return header
     }
 

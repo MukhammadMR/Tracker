@@ -12,7 +12,17 @@ final class CategoryViewController: UIViewController {
     weak var delegate: CategoryViewControllerDelegate?
     
     private var selectedCategoryName: String?
-    private var viewModel = CategoryViewModel()
+    private var viewModel: CategoryViewModel
+    
+    // MARK: - Initializers
+    init(viewModel: CategoryViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     private let emptyCategoryLabel: UILabel = {
         let label = UILabel()
@@ -33,7 +43,7 @@ final class CategoryViewController: UIViewController {
         return imageView
     }()
     
-    private var tableView: UITableView!
+    private var tableView: UITableView?
     
     private let newCategoryButton: UIButton = {
         let button = UIButton(type: .system)
@@ -58,7 +68,7 @@ final class CategoryViewController: UIViewController {
         
         newCategoryButton.addTarget(self, action: #selector(newCategoryButtonTapped), for: .touchUpInside)
         
-        tableView = UITableView(frame: .zero, style: .plain)
+        let tableView = UITableView(frame: .zero, style: .plain)
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.dataSource = self
@@ -66,6 +76,7 @@ final class CategoryViewController: UIViewController {
         tableView.showsVerticalScrollIndicator = false
         tableView.register(CategoryCell.self, forCellReuseIdentifier: "CategoryCell")
         tableView.rowHeight = 75
+        self.tableView = tableView
         
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         tableView.addGestureRecognizer(longPressGesture)
@@ -105,11 +116,11 @@ final class CategoryViewController: UIViewController {
         viewModel.onCategoriesUpdated = { [weak self] in
             guard let self = self else { return }
             DispatchQueue.main.async {
-                self.tableView.reloadData()
+                self.tableView?.reloadData()
                 let isEmpty = self.viewModel.categories.isEmpty
                 self.emptyCategoryImageView.isHidden = !isEmpty
                 self.emptyCategoryLabel.isHidden = !isEmpty
-                self.tableView.isHidden = isEmpty
+                self.tableView?.isHidden = isEmpty
             }
         }
         
@@ -120,11 +131,11 @@ final class CategoryViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        tableView.reloadData()
+        tableView?.reloadData()
         let isEmpty = viewModel.categories.isEmpty
         emptyCategoryImageView.isHidden = !isEmpty
         emptyCategoryLabel.isHidden = !isEmpty
-        tableView.isHidden = isEmpty
+        tableView?.isHidden = isEmpty
     }
     
     @objc private func newCategoryButtonTapped() {
@@ -141,12 +152,13 @@ final class CategoryViewController: UIViewController {
     func selectCategory(_ category: TrackerCategoryCoreData) {
         selectedCategoryName = category.name
         delegate?.didSelectCategory(category.name ?? "")
-        tableView.reloadData()
+        tableView?.reloadData()
         dismiss(animated: true, completion: nil)
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
+        guard let tableView = tableView else { return }
         let point = gesture.location(in: tableView)
         guard let indexPath = tableView.indexPathForRow(at: point) else { return }
 
@@ -205,3 +217,4 @@ extension CategoryViewController: UITableViewDataSource, UITableViewDelegate {
         selectCategory(category)
     }
 }
+

@@ -163,7 +163,7 @@ final class TrackerStore: NSObject {
     }
 
     func isPinned(_ id: UUID) -> Bool {
-        return fetchTracker(by: id)?.isPinned ?? false
+        fetchTracker(by: id)?.isPinned ?? false
     }
 
     func togglePinned(_ id: UUID) throws {

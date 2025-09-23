@@ -75,8 +75,8 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
         return label
     }()
 
-    private var nameTopToContent: NSLayoutConstraint!
-    private var nameTopToDays: NSLayoutConstraint!
+    private var nameTopToContent: NSLayoutConstraint?
+    private var nameTopToDays: NSLayoutConstraint?
     
     private let nameTextField: UITextField = {
         let textField = UITextField()
@@ -247,7 +247,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
 
         nameTopToContent = nameTextField.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Constants.textFieldTop)
         nameTopToDays = nameTextField.topAnchor.constraint(equalTo: daysCountLabel.bottomAnchor, constant: 16)
-        nameTopToContent.isActive = true
+        nameTopToContent?.isActive = true
 
         NSLayoutConstraint.activate([
             nameTextField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.textFieldSide),
@@ -365,8 +365,8 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
         let count = TrackerRecordStore.shared.records(for: tracker.id).count
         daysCountLabel.isHidden = false
         daysCountLabel.text = "\(count) \(pluralizeDays(count))"
-        nameTopToContent.isActive = false
-        nameTopToDays.isActive = true
+        nameTopToContent?.isActive = false
+        nameTopToDays?.isActive = true
 
         let all = WeekDay.allCases
         selectedDays = tracker.schedule.compactMap { str in
@@ -435,7 +435,7 @@ extension CreateTrackerViewController: UITableViewDelegate {
 
         switch indexPath.row {
         case 0:
-            let categoryViewController = CategoryViewController()
+            let categoryViewController = CategoryViewController(viewModel: CategoryViewModel())
             categoryViewController.delegate = self
             let navController = UINavigationController(rootViewController: categoryViewController)
             present(navController, animated: true, completion: nil)
