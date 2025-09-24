@@ -1,21 +1,22 @@
 import UIKit
 
 final class TrackerViewController: UIViewController {
-    // MARK: - Data Sources
+
+    // MARK: - Data
     private var categories: [TrackerCategory] = []
     var completedTrackers: [TrackerRecord] = []
     private var currentDate: Date = Date()
-    
-    // MARK: - UI Components
+    private var filteredCategories: [TrackerCategory] = []
+    private var isSearching: Bool = false
+
+    // MARK: - UI
     private var collectionView: UICollectionView?
-    
     private let emptyImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(named: "dizzy")
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
-
     private let emptyLabel: UILabel = {
         let label = UILabel()
         label.text = "Что будем отслеживать?"
@@ -25,12 +26,14 @@ final class TrackerViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
-    // Search
-    private var searchVC: SearchViewController?
-    private var filteredCategories: [TrackerCategory] = []
-    private var isSearching: Bool = false
-    
+    private let searchBar: UISearchBar = {
+        let sb = UISearchBar()
+        sb.placeholder = "Поиск"
+        sb.searchBarStyle = .minimal
+        sb.translatesAutoresizingMaskIntoConstraints = false
+        return sb
+    }()
+
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,11 +41,9 @@ final class TrackerViewController: UIViewController {
         let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
         rebuildCategories(from: grouped)
         view.backgroundColor = .systemBackground
-        
         title = "Трекеры"
         navigationItem.largeTitleDisplayMode = .always
         navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(named: "plus")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(addButtonTapped))
-
         let datePicker = UIDatePicker()
         datePicker.preferredDatePickerStyle = .compact
         datePicker.datePickerMode = .date
@@ -50,18 +51,22 @@ final class TrackerViewController: UIViewController {
         datePicker.locale = Locale(identifier: "ru_RU")
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
         datePicker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
-        
-        // Search Controller
-        let searchVC = SearchViewController()
-        self.searchVC = searchVC
-        navigationItem.searchController = searchVC.searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
-        definesPresentationContext = true
-        searchVC.onSearchTextChanged = { [weak self] text in
-            self?.filterContentForSearchText(text)
-        }
-
-
+        view.addSubview(searchBar)
+        searchBar.delegate = self
+        searchBar.showsCancelButton = true
+        searchBar.tintColor = .systemBlue
+        searchBar.searchTextField.keyboardType = .default
+        searchBar.searchTextField.autocorrectionType = .no
+        searchBar.searchTextField.spellCheckingType = .no
+        searchBar.searchTextField.smartQuotesType = .no
+        searchBar.searchTextField.smartDashesType = .no
+        searchBar.searchTextField.smartInsertDeleteType = .no
+        searchBar.semanticContentAttribute = .forceLeftToRight
+        NSLayoutConstraint.activate([
+            searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+        ])
         let layout = UICollectionViewFlowLayout()
         layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         layout.minimumLineSpacing = 16
@@ -73,24 +78,20 @@ final class TrackerViewController: UIViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .clear
         view.addSubview(collectionView)
-
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            collectionView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 16),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-
         collectionView.register(TrackerCollectionViewCell.self, forCellWithReuseIdentifier: "TrackerCell")
         collectionView.dataSource = self
         collectionView.delegate = self
         collectionView.register(TrackerSectionHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "SectionHeader")
         updatePlaceholderVisibility()
-        self.loadCompletedTrackers()
-
+        loadCompletedTrackers()
         view.addSubview(emptyImageView)
         view.addSubview(emptyLabel)
-
         NSLayoutConstraint.activate([
             emptyImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyImageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -100,14 +101,14 @@ final class TrackerViewController: UIViewController {
             emptyLabel.centerXAnchor.constraint(equalTo: emptyImageView.centerXAnchor)
         ])
     }
-    
+
     @objc
     private func dateChanged(_ sender: UIDatePicker) {
         currentDate = sender.date
         loadCompletedTrackers()
         collectionView?.reloadData()
     }
-    
+
     // MARK: - Actions
     @objc
     private func addButtonTapped() {
@@ -117,7 +118,7 @@ final class TrackerViewController: UIViewController {
         navController.modalPresentationStyle = .pageSheet
         present(navController, animated: true)
     }
-    
+
     // MARK: - Helpers
     private func rebuildCategories(from grouped: [String: [Tracker]]) {
         var ordered: [TrackerCategory] = []
@@ -131,7 +132,7 @@ final class TrackerViewController: UIViewController {
         }
         categories = ordered
     }
-    
+
     private func updatePlaceholderVisibility() {
         let showingCategories = isSearching ? filteredCategories : categories
         let isEmpty = showingCategories.flatMap { $0.trackers }.isEmpty
@@ -171,7 +172,7 @@ final class TrackerViewController: UIViewController {
         collectionView?.reloadData()
         showEmptySearchStateIfNeeded(for: searchText)
     }
-    
+
     private func loadCompletedTrackers() {
         completedTrackers = TrackerRecordStore.shared.records()
     }
@@ -334,3 +335,17 @@ extension TrackerViewController: UICollectionViewDelegate {
     }
     
 }
+
+
+// MARK: - UISearchBarDelegate
+extension TrackerViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        filterContentForSearchText(searchText)
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""
+        filterContentForSearchText("")
+    }
+}
+

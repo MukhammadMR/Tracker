@@ -8,10 +8,12 @@
 import UIKit
 
 final class SearchViewController: UIViewController, UISearchResultsUpdating {
+
     // MARK: - Properties
     let searchController: UISearchController
     var onSearchTextChanged: ((String) -> Void)?
 
+    // MARK: - Init
     init() {
         let resultsController = nil as UIViewController?
         self.searchController = UISearchController(searchResultsController: resultsController)
