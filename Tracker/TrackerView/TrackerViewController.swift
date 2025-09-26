@@ -19,7 +19,7 @@ final class TrackerViewController: UIViewController {
     }()
     private let emptyLabel: UILabel = {
         let label = UILabel()
-        label.text = "Что будем отслеживать?"
+        label.text = NSLocalizedString("what_to_track", comment: "Что будем отслеживать?")
         label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         label.textColor = UIColor(named: "Black [day]")
         label.textAlignment = .center
@@ -28,7 +28,7 @@ final class TrackerViewController: UIViewController {
     }()
     private let searchBar: UISearchBar = {
         let sb = UISearchBar()
-        sb.placeholder = "Поиск"
+        sb.placeholder = NSLocalizedString("search_placeholder", comment: "Поиск")
         sb.searchBarStyle = .minimal
         sb.translatesAutoresizingMaskIntoConstraints = false
         return sb
@@ -41,7 +41,7 @@ final class TrackerViewController: UIViewController {
         let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
         rebuildCategories(from: grouped)
         view.backgroundColor = .systemBackground
-        title = "Трекеры"
+        title = NSLocalizedString("trackers_title", comment: "Трекеры")
         navigationItem.largeTitleDisplayMode = .always
         navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(named: "plus")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(addButtonTapped))
         let datePicker = UIDatePicker()
@@ -122,10 +122,11 @@ final class TrackerViewController: UIViewController {
     // MARK: - Helpers
     private func rebuildCategories(from grouped: [String: [Tracker]]) {
         var ordered: [TrackerCategory] = []
-        if let pinned = grouped["Закрепленные"], !pinned.isEmpty {
-            ordered.append(TrackerCategory(title: "Закрепленные", trackers: pinned))
+        let pinnedKey = NSLocalizedString("pinned", comment: "Закрепленные")
+        if let pinned = grouped[pinnedKey], !pinned.isEmpty {
+            ordered.append(TrackerCategory(title: pinnedKey, trackers: pinned))
         }
-        for key in grouped.keys.sorted() where key != "Закрепленные" {
+        for key in grouped.keys.sorted() where key != pinnedKey {
             if let trackers = grouped[key], !trackers.isEmpty {
                 ordered.append(TrackerCategory(title: key, trackers: trackers))
             }
@@ -146,10 +147,10 @@ final class TrackerViewController: UIViewController {
             emptyImageView.isHidden = false
             emptyLabel.isHidden = false
             emptyImageView.image = UIImage(named: "error")
-            emptyLabel.text = "Ничего не найдено"
+            emptyLabel.text = NSLocalizedString("nothing_found", comment: "Ничего не найдено")
         } else {
             emptyImageView.image = UIImage(named: "dizzy")
-            emptyLabel.text = "Что будем отслеживать?"
+            emptyLabel.text = NSLocalizedString("what_to_track", comment: "Что будем отслеживать?")
             updatePlaceholderVisibility()
         }
     }
@@ -276,7 +277,9 @@ extension TrackerViewController: UICollectionViewDelegate {
         return UIContextMenuConfiguration(identifier: indexPath as NSCopying, previewProvider: nil) { _ in
             let tracker = self.categories[indexPath.section].trackers[indexPath.item]
             let pinnedNow = TrackerStore.shared.isPinned(tracker.id)
-            let pinTitle = pinnedNow ? "Открепить" : "Закрепить"
+            let pinTitle = pinnedNow
+                ? NSLocalizedString("unpin", comment: "Открепить")
+                : NSLocalizedString("pin", comment: "Закрепить")
             let pinImage = UIImage(systemName: "pin")
             let pin = UIAction(title: pinTitle, image: pinImage) { _ in
                 try? TrackerStore.shared.togglePinned(tracker.id)
@@ -284,7 +287,7 @@ extension TrackerViewController: UICollectionViewDelegate {
                 self.rebuildCategories(from: grouped)
                 self.collectionView?.reloadData()
             }
-            let edit = UIAction(title: "Редактировать", image: UIImage(systemName: "pencil")) { [weak self] _ in
+            let edit = UIAction(title: NSLocalizedString("edit_action", comment: "Редактировать"), image: UIImage(systemName: "pencil")) { [weak self] _ in
                 guard let self = self else { return }
                 let trackerToEdit = tracker
                 let editVC = CreateTrackerViewController()
@@ -298,19 +301,20 @@ extension TrackerViewController: UICollectionViewDelegate {
                 nav.modalPresentationStyle = .pageSheet
                 self.present(nav, animated: true)
             }
-            let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+            let delete = UIAction(title: NSLocalizedString("delete_action", comment: "Удалить"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 guard let self = self else { return }
-                let alert = UIAlertController(title: "Вы уверены что хотите удалить трекер?",
-                                              message: nil,
-                                              preferredStyle: .actionSheet)
-                alert.addAction(UIAlertAction(title: "Удалить", style: .destructive, handler: { _ in
+                let alert = UIAlertController(
+                    title: NSLocalizedString("delete_confirmation", comment: "Вы уверены что хотите удалить трекер?"),
+                    message: nil,
+                    preferredStyle: .actionSheet)
+                alert.addAction(UIAlertAction(title: NSLocalizedString("delete_action", comment: "Удалить"), style: .destructive, handler: { _ in
                     try? TrackerStore.shared.deleteTracker(id: tracker.id)
                     let grouped = TrackerStore.shared.fetchedTrackersGroupedByCategory()
                     self.rebuildCategories(from: grouped)
                     self.collectionView?.reloadData()
                     self.updatePlaceholderVisibility()
                 }))
-                alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                alert.addAction(UIAlertAction(title: NSLocalizedString("cancel_action", comment: "Отмена"), style: .cancel))
 
                 if let cell = collectionView.cellForItem(at: indexPath) {
                     alert.popoverPresentationController?.sourceView = cell

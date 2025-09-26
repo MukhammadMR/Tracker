@@ -110,7 +110,8 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     func configure(with tracker: Tracker, completedDays: Int, isCompleted: Bool, isFutureDate: Bool) {
         emojiLabel.text = tracker.emoji
         titleLabel.text = tracker.name
-        daysLabel.text = "\(completedDays) \(completedDays == 1 ? "день" : (completedDays >= 2 && completedDays <= 4 ? "дня" : "дней"))"
+        let formatString = NSLocalizedString("days_count", comment: "")
+        daysLabel.text = String.localizedStringWithFormat(formatString, completedDays)
         cardView.backgroundColor = tracker.color
         self.isCompleted = isCompleted
         updatePlusButtonAppearance(isFutureDate: isFutureDate)

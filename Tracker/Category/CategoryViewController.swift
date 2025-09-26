@@ -26,7 +26,7 @@ final class CategoryViewController: UIViewController {
     
     private let emptyCategoryLabel: UILabel = {
         let label = UILabel()
-        label.text = "Привычки и события можно\nобъединить по смыслу"
+        label.text = NSLocalizedString("empty_category_message", comment: "Привычки и события можно\nобъединить по смыслу")
         label.textColor = UIColor(named: "SupportiveSecondary")
         label.font = UIFont(name: "YP-Regular", size: 12)
         label.textAlignment = .center
@@ -47,7 +47,7 @@ final class CategoryViewController: UIViewController {
     
     private let newCategoryButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Добавить категорию", for: .normal)
+        button.setTitle(NSLocalizedString("add_category_button", comment: "Добавить категорию"), for: .normal)
         button.backgroundColor =  #colorLiteral(red: 0.1019607843, green: 0.1058823529, blue: 0.1333333333, alpha: 1)
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 16
@@ -57,7 +57,7 @@ final class CategoryViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        navigationItem.title = "Категория"
+        navigationItem.title = NSLocalizedString("category_title", comment: "Категория")
         view.backgroundColor = .systemBackground
         
         if let selected = delegate?.currentlySelectedCategory as? TrackerCategoryCoreData {
@@ -141,7 +141,7 @@ final class CategoryViewController: UIViewController {
     @objc private func newCategoryButtonTapped() {
         let newCategoryVC = NewCategoryViewController()
         newCategoryVC.onCategoryCreated = { [weak self] newCategoryName in
-            print("Создана новая категория: \(newCategoryName)")
+            print(NSLocalizedString("new_category_created", comment: "Создана новая категория") + ": \(newCategoryName)")
             self?.viewModel.addCategory(name: newCategoryName)
             self?.selectedCategoryName = nil
         }
@@ -164,7 +164,7 @@ final class CategoryViewController: UIViewController {
 
         let category = viewModel.categories[indexPath.row]
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "Редактировать", style: .default, handler: { _ in
+        alert.addAction(UIAlertAction(title: NSLocalizedString("edit_category", comment: "Редактировать"), style: .default, handler: { _ in
             let editVC = NewCategoryViewController()
             editVC.categoryToEdit = category.name ?? ""
             editVC.onCategoryEdited = { [weak self] updatedCategoryName in
@@ -174,11 +174,11 @@ final class CategoryViewController: UIViewController {
             let navController = UINavigationController(rootViewController: editVC)
             self.present(navController, animated: true)
         }))
-        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive, handler: { [weak self] _ in
+        alert.addAction(UIAlertAction(title: NSLocalizedString("delete_category", comment: "Удалить"), style: .destructive, handler: { [weak self] _ in
             guard let self = self else { return }
             self.viewModel.deleteCategory(category)
         }))
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: NSLocalizedString("cancel_action", comment: "Отмена"), style: .cancel))
         self.present(alert, animated: true, completion: nil)
     }
 }
@@ -217,4 +217,3 @@ extension CategoryViewController: UITableViewDataSource, UITableViewDelegate {
         selectCategory(category)
     }
 }
-

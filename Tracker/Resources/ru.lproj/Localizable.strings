@@ -1,0 +1,32 @@
+/* 
+  Localizable.strings
+  Tracker
+
+  Created by Мухаммад Махмудов on 25.09.2025.
+  
+*/
+
+"trackers_title" = "Трекеры";
+"statistics_title" = "Статистика";
+"empty_statistics" = "Анализировать пока нечего";
+"category_title" = "Категория";
+"add_category_button" = "Добавить категорию";
+"empty_category_text" = "Привычки и события можно\nобъединить по смыслу";
+"edit_action" = "Редактировать";
+"delete_action" = "Удалить";
+"cancel_action" = "Отмена";
+"statistics_empty" = "Анализировать пока нечего";
+"new_habit_title" = "Новая привычка";
+"enterTrackerName" = "Введите название трекера";
+"schedule_title" = "Расписание";
+"search_placeholder" = "Поиск";
+"cancel_button" = "Отмена";
+"create_button" = "Создать";
+"done_button" = "Готово";
+"monday" = "Понедельник";
+"tuesday" = "Вторник";
+"wednesday" = "Среда";
+"thursday" = "Четверг";
+"friday" = "Пятница";
+"saturday" = "Суббота";
+"sunday" = "Воскресенье";

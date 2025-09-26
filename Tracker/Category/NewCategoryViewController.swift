@@ -18,7 +18,7 @@ final class NewCategoryViewController: UIViewController {
 
     private let newCategoryTextField: UITextField = {
         let textField = UITextField()
-        textField.placeholder = "Введите название категории"
+        textField.placeholder = NSLocalizedString("new_category_placeholder", comment: "Введите название категории")
         textField.backgroundColor = #colorLiteral(red: 0.902, green: 0.91, blue: 0.922, alpha: 0.3)
         textField.layer.cornerRadius = 16
         textField.font = UIFont.systemFont(ofSize: 17)
@@ -32,7 +32,7 @@ final class NewCategoryViewController: UIViewController {
 
     private let doneButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Готово", for: .normal)
+        button.setTitle(NSLocalizedString("done_button", comment: "Готово"), for: .normal)
         button.backgroundColor = #colorLiteral(red: 0.1019607843, green: 0.1058823529, blue: 0.1333333333, alpha: 1)
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 16
@@ -53,7 +53,9 @@ final class NewCategoryViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        navigationItem.title = categoryToEdit == nil ? "Новая категория" : "Редактирование категории"
+        navigationItem.title = categoryToEdit == nil
+            ? NSLocalizedString("new_category_title", comment: "Новая категория")
+            : NSLocalizedString("edit_category_title", comment: "Редактирование категории")
         if let categoryToEdit {
             newCategoryTextField.text = categoryToEdit
         }

@@ -7,11 +7,24 @@
 
 import UIKit
 
+struct StatisticsItem {
+    let value: Int
+    let title: String
+}
+
 final class StatisticsViewController: UIViewController {
+    
+    
+    private let statistics: [StatisticsItem] = [
+        StatisticsItem(value: 6, title: NSLocalizedString("best_period", comment: "Лучший период")),
+        StatisticsItem(value: 2, title: NSLocalizedString("perfect_days", comment: "Идеальные дни")),
+        StatisticsItem(value: 5, title: NSLocalizedString("trackers_completed", comment: "Трекеров завершено")),
+        StatisticsItem(value: 4, title: NSLocalizedString("average_value", comment: "Среднее значение"))
+    ]
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Статистика"
+        label.text = NSLocalizedString("statistics_title", comment: "Статистика")
         label.font = .boldSystemFont(ofSize: 34)
         label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -27,7 +40,7 @@ final class StatisticsViewController: UIViewController {
     
     private let emptyStateLabel: UILabel = {
         let label = UILabel()
-        label.text = "Анализировать пока нечего"
+        label.text = NSLocalizedString("statistics_empty", comment: "Анализировать пока нечего")
         label.font = UIFont(name: "YP-Medium", size: 12)
         label.textColor = UIColor(named: "Black day")
         label.textAlignment = .center
@@ -53,6 +66,9 @@ final class StatisticsViewController: UIViewController {
         view.addSubview(emptyStateImageView)
         view.addSubview(emptyStateLabel)
         view.addSubview(tableView)
+        
+        tableView.register(StatisticsCell.self, forCellReuseIdentifier: "StatisticsCell")
+        tableView.dataSource = self
         
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 88),
@@ -85,5 +101,20 @@ final class StatisticsViewController: UIViewController {
             emptyStateImageView.isHidden = false
             emptyStateLabel.isHidden = false
         }
+    }
+}
+
+extension StatisticsViewController: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return statistics.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "StatisticsCell", for: indexPath) as? StatisticsCell else {
+            return UITableViewCell()
+        }
+        let item = statistics[indexPath.row]
+        cell.configure(with: item)
+        return cell
     }
 }
