@@ -333,7 +333,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
     
     @objc private func createButtonTapped() {
         guard let titleText = nameTextField.text, !titleText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let schedule: [String] = selectedDays.map { WeekDay.allCases[$0].rawValue }
+        let schedule: [Int] = selectedDays
 
         if let original = editingTracker {
             let updated = Tracker(
@@ -383,10 +383,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
         nameTopToContent?.isActive = false
         nameTopToDays?.isActive = true
 
-        let all = WeekDay.allCases
-        selectedDays = tracker.schedule.compactMap { str in
-            all.firstIndex(where: { $0.rawValue == str })
-        }
+        selectedDays = tracker.schedule
 
         tableView.reloadData()
         emojiCollectionView.reloadData()
@@ -424,16 +421,7 @@ extension CreateTrackerViewController: UITableViewDataSource {
             } else if selectedDays.count == 7 {
                 cell.subtitleLabel.text = NSLocalizedString("everyday", comment: "Каждый день")
             } else {
-                let shortWeekdays = [
-                    NSLocalizedString("mon_short", comment: "Пн"),
-                    NSLocalizedString("tue_short", comment: "Вт"),
-                    NSLocalizedString("wed_short", comment: "Ср"),
-                    NSLocalizedString("thu_short", comment: "Чт"),
-                    NSLocalizedString("fri_short", comment: "Пт"),
-                    NSLocalizedString("sat_short", comment: "Сб"),
-                    NSLocalizedString("sun_short", comment: "Вс")
-                ]
-                let selectedNames = selectedDays.map { shortWeekdays[$0] }.joined(separator: ", ")
+                let selectedNames = selectedDays.map { WeekDay.allCases[$0].rawValue }.joined(separator: ", ")
                 cell.subtitleLabel.text = selectedNames
             }
         } else if indexPath.row == 0 {

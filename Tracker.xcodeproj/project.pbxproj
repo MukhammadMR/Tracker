@@ -16,7 +16,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		28C90A572E4F860500B8D860 /* Exceptions for "Tracker" folder in "Tracker" target */ = {
+		28A714A62E86D88C001BBD2D /* Exceptions for "Tracker" folder in "Tracker" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -31,10 +31,10 @@
 			path = CoreData;
 			sourceTree = "<group>";
 		};
-		28C90A472E4F860300B8D860 /* Tracker */ = {
+		28A714832E86D88C001BBD2D /* Tracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				28C90A572E4F860500B8D860 /* Exceptions for "Tracker" folder in "Tracker" target */,
+				28A714A62E86D88C001BBD2D /* Exceptions for "Tracker" folder in "Tracker" target */,
 			);
 			path = Tracker;
 			sourceTree = "<group>";
@@ -57,7 +57,7 @@
 			children = (
 				28407AFD2E69FA770048102D /* CoreData */,
 				28F84D252E69823200FA4D75 /* TrackerModel.xcdatamodeld */,
-				28C90A472E4F860300B8D860 /* Tracker */,
+				28A714832E86D88C001BBD2D /* Tracker */,
 				28C90A462E4F860300B8D860 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				28407AFD2E69FA770048102D /* CoreData */,
-				28C90A472E4F860300B8D860 /* Tracker */,
+				28A714832E86D88C001BBD2D /* Tracker */,
 			);
 			name = Tracker;
 			packageProductDependencies = (

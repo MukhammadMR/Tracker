@@ -30,3 +30,13 @@
 "friday" = "Пятница";
 "saturday" = "Суббота";
 "sunday" = "Воскресенье";
+"emoji_title" = "Emoji";
+"color_title" = "Цвет";
+"what_to_track" = "Что будем отслеживать?";
+"nothing_found" = "Ничего не найдено";
+"filter_all" = "Все трекеры";
+"filter_today" = "Трекеры на сегодня";
+"filter_completed" = "Завершенные";
+"filter_not_completed" = "Не завершенные";
+"unpin" = "Открепить";
+"pin" = "Закрепить";

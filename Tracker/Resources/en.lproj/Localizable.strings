@@ -31,3 +31,13 @@
 "friday" = "Friday";
 "saturday" = "Saturday";
 "sunday" = "Sunday";
+"emoji_title" = "Emoji";
+"color_title" = "Color";
+"what_to_track" = "What to track?";
+"nothing_found" = "Nothing found";
+"filter_all" = "All filter";
+"filter_today" = "Today filter";
+"filter_completed" = "Completed";
+"filter_not_completed" = "Not complited";
+"unpin" = "Unpin";
+"pin" = "Pin";
