@@ -41,3 +41,7 @@
 "filter_not_completed" = "Not complited";
 "unpin" = "Unpin";
 "pin" = "Pin";
+"best_period" = "Best period";
+"perfect_days" = "Perfect days";
+"trackers_completed" = "Trackers completed";
+"average_value" = "Average value";

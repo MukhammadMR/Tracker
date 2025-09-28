@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import CoreData
 
 struct StatisticsItem {
     let value: Int
@@ -15,12 +16,7 @@ struct StatisticsItem {
 final class StatisticsViewController: UIViewController {
     
     
-    private let statistics: [StatisticsItem] = [
-        StatisticsItem(value: 6, title: NSLocalizedString("best_period", comment: "Лучший период")),
-        StatisticsItem(value: 2, title: NSLocalizedString("perfect_days", comment: "Идеальные дни")),
-        StatisticsItem(value: 5, title: NSLocalizedString("trackers_completed", comment: "Трекеров завершено")),
-        StatisticsItem(value: 4, title: NSLocalizedString("average_value", comment: "Среднее значение"))
-    ]
+    private var statistics: [StatisticsItem] = []
     
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -48,12 +44,46 @@ final class StatisticsViewController: UIViewController {
         return label
     }()
     
-    private let tableView: UITableView = {
-        let tableView = UITableView()
-        tableView.isHidden = true
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        return tableView
+    private let stackView: UIStackView = {
+        let sv = UIStackView()
+        sv.axis = .vertical
+        sv.spacing = 12
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
+    
+    private func reloadStatistics() {
+        var completedCount = 0
+        if let context = try? CoreDataStack.shared.context {
+            let request: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
+            completedCount = (try? context.count(for: request)) ?? 0
+            
+            let fetch: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
+            let allRecords = (try? context.fetch(fetch)) ?? []
+            
+            let bestPeriod = calculateBestPeriod(records: allRecords)
+            let perfectDays = calculatePerfectDays(records: allRecords)
+            let averageValue = calculateAverageValue(records: allRecords)
+            
+            statistics = [
+                StatisticsItem(value: bestPeriod, title: NSLocalizedString("best_period", comment: "Лучший период")),
+                StatisticsItem(value: perfectDays, title: NSLocalizedString("perfect_days", comment: "Идеальные дни")),
+                StatisticsItem(value: completedCount, title: NSLocalizedString("trackers_completed", comment: "Трекеров завершено")),
+                StatisticsItem(value: averageValue, title: NSLocalizedString("average_value", comment: "Среднее значение"))
+            ]
+        }
+
+        hasStatisticsData = completedCount > 0
+        updateUI()
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for (index, item) in statistics.enumerated() {
+            let cell = StatisticsCell()
+            cell.configure(with: item)
+            cell.translatesAutoresizingMaskIntoConstraints = false
+            cell.heightAnchor.constraint(equalToConstant: StatisticsCell.cellHeight).isActive = true
+            stackView.addArrangedSubview(cell)
+        }
+    }
     
     private var hasStatisticsData = false
     
@@ -65,10 +95,7 @@ final class StatisticsViewController: UIViewController {
         view.addSubview(titleLabel)
         view.addSubview(emptyStateImageView)
         view.addSubview(emptyStateLabel)
-        view.addSubview(tableView)
-        
-        tableView.register(StatisticsCell.self, forCellReuseIdentifier: "StatisticsCell")
-        tableView.dataSource = self
+        view.addSubview(stackView)
         
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 88),
@@ -82,39 +109,74 @@ final class StatisticsViewController: UIViewController {
             emptyStateLabel.topAnchor.constraint(equalTo: emptyStateImageView.bottomAnchor, constant: 8),
             emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             
-            tableView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            stackView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 77),
+            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
         ])
         
-        updateUI()
+        reloadStatistics()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        reloadStatistics()
     }
     
     private func updateUI() {
         if hasStatisticsData {
-            tableView.isHidden = false
+            stackView.isHidden = false
             emptyStateImageView.isHidden = true
             emptyStateLabel.isHidden = true
         } else {
-            tableView.isHidden = true
+            stackView.isHidden = true
             emptyStateImageView.isHidden = false
             emptyStateLabel.isHidden = false
         }
     }
-}
+    
+    private func calculateBestPeriod(records: [TrackerRecordCoreData]) -> Int {
+        let dates = Set(records.compactMap { $0.date?.startOfDay })
+        let sorted = dates.sorted()
+        var maxStreak = 0
+        var currentStreak = 0
+        var prevDate: Date?
 
-extension StatisticsViewController: UITableViewDataSource {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return statistics.count
+        for date in sorted {
+            if let prev = prevDate, let next = Calendar.current.date(byAdding: .day, value: 1, to: prev), Calendar.current.isDate(next, inSameDayAs: date) {
+                currentStreak += 1
+            } else {
+                currentStreak = 1
+            }
+            maxStreak = max(maxStreak, currentStreak)
+            prevDate = date
+        }
+        return maxStreak
     }
 
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "StatisticsCell", for: indexPath) as? StatisticsCell else {
-            return UITableViewCell()
+    private func calculatePerfectDays(records: [TrackerRecordCoreData]) -> Int {
+        let grouped = Dictionary(grouping: records) { $0.date?.startOfDay ?? Date() }
+        var perfect = 0
+        for (day, recs) in grouped {
+            let completedTrackers = Set(recs.compactMap { $0.tracker?.id })
+            // общее количество активных трекеров
+            let activeTrackers = (try? CoreDataStack.shared.context.count(for: TrackerCoreData.fetchRequest())) ?? 0
+            if completedTrackers.count == activeTrackers && activeTrackers > 0 {
+                perfect += 1
+            }
         }
-        let item = statistics[indexPath.row]
-        cell.configure(with: item)
-        return cell
+        return perfect
+    }
+
+    private func calculateAverageValue(records: [TrackerRecordCoreData]) -> Int {
+        let grouped = Dictionary(grouping: records) { $0.date?.startOfDay ?? Date() }
+        guard !grouped.isEmpty else { return 0 }
+        let total = records.count
+        return total / grouped.keys.count
+    }
+}
+
+private extension Date {
+    var startOfDay: Date {
+        return Calendar.current.startOfDay(for: self)
     }
 }

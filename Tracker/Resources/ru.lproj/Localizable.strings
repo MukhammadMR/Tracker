@@ -40,3 +40,8 @@
 "filter_not_completed" = "Не завершенные";
 "unpin" = "Открепить";
 "pin" = "Закрепить";
+"best_period" = "Лучший период";
+"perfect_days" = "Идеальные дни";
+"trackers_completed" = "Трекеров завершено";
+"average_value" = "Среднее значение";
+
