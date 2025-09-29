@@ -136,6 +136,7 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     }
     
     @objc private func plusButtonTapped() {
+        AnalyticsService().logEvent(event: "click", screen: "main", item: "track")
         toggleTrackerCompletion()
     }
 

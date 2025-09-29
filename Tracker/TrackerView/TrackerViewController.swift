@@ -133,6 +133,16 @@ override func viewDidLoad() {
     ])
 }
 
+override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    AnalyticsService().logEvent(event: "open", screen: "main")
+}
+
+override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    AnalyticsService().logEvent(event: "close", screen: "main")
+}
+
 @objc
 private func dateChanged(_ sender: UIDatePicker) {
     currentDate = sender.date
@@ -143,6 +153,7 @@ private func dateChanged(_ sender: UIDatePicker) {
 // MARK: - Actions
 @objc
 private func addButtonTapped() {
+    AnalyticsService().logEvent(event: "click", screen: "main", item: "add_track")
     let createTrackerVC = CreateTrackerViewController()
     createTrackerVC.delegate = self
     let navController = UINavigationController(rootViewController: createTrackerVC)
@@ -153,6 +164,7 @@ private func addButtonTapped() {
 // MARK: - Filter Button Action
 @objc
 private func filterButtonTapped() {
+    AnalyticsService().logEvent(event: "click", screen: "main", item: "filter")
     let filterVC = FilterViewController()
     filterVC.selectedFilter = currentFilter
     filterVC.delegate = self
@@ -330,6 +342,7 @@ func collectionView(_ collectionView: UICollectionView, contextMenuConfiguration
             self.collectionView?.reloadData()
         }
         let edit = UIAction(title: NSLocalizedString("edit_action", comment: "Редактировать"), image: UIImage(systemName: "pencil")) { [weak self] _ in
+            AnalyticsService().logEvent(event: "click", screen: "main", item: "edit")
             guard let self = self else { return }
             let trackerToEdit = tracker
             let editVC = CreateTrackerViewController()
@@ -344,6 +357,7 @@ func collectionView(_ collectionView: UICollectionView, contextMenuConfiguration
             self.present(nav, animated: true)
         }
         let delete = UIAction(title: NSLocalizedString("delete_action", comment: "Удалить"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+            AnalyticsService().logEvent(event: "click", screen: "main", item: "delete")
             guard let self = self else { return }
             let alert = UIAlertController(
                 title: NSLocalizedString("delete_confirmation", comment: "Вы уверены что хотите удалить трекер?"),
