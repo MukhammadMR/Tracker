@@ -28,7 +28,7 @@ final class StatisticsViewController: UIViewController {
     }()
     
     private let emptyStateImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "error_statistics"))
+        let imageView = UIImageView(image: UIImage(resource: .errorStatistics))
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -54,29 +54,29 @@ final class StatisticsViewController: UIViewController {
     
     private func reloadStatistics() {
         var completedCount = 0
-        if let context = try? CoreDataStack.shared.context {
-            let request: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
-            completedCount = (try? context.count(for: request)) ?? 0
-            
-            let fetch: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
-            let allRecords = (try? context.fetch(fetch)) ?? []
-            
-            let bestPeriod = calculateBestPeriod(records: allRecords)
-            let perfectDays = calculatePerfectDays(records: allRecords)
-            let averageValue = calculateAverageValue(records: allRecords)
-            
-            statistics = [
-                StatisticsItem(value: bestPeriod, title: NSLocalizedString("best_period", comment: "Лучший период")),
-                StatisticsItem(value: perfectDays, title: NSLocalizedString("perfect_days", comment: "Идеальные дни")),
-                StatisticsItem(value: completedCount, title: NSLocalizedString("trackers_completed", comment: "Трекеров завершено")),
-                StatisticsItem(value: averageValue, title: NSLocalizedString("average_value", comment: "Среднее значение"))
-            ]
-        }
+        let context = CoreDataStack.shared.context
+        let request: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
+        completedCount = (try? context.count(for: request)) ?? 0
+        
+        let fetch: NSFetchRequest<TrackerRecordCoreData> = TrackerRecordCoreData.fetchRequest()
+        let allRecords = (try? context.fetch(fetch)) ?? []
+        
+        let bestPeriod = calculateBestPeriod(records: allRecords)
+        let perfectDays = calculatePerfectDays(records: allRecords)
+        let averageValue = calculateAverageValue(records: allRecords)
+        
+        statistics = [
+            StatisticsItem(value: bestPeriod, title: NSLocalizedString("best_period", comment: "Лучший период")),
+            StatisticsItem(value: perfectDays, title: NSLocalizedString("perfect_days", comment: "Идеальные дни")),
+            StatisticsItem(value: completedCount, title: NSLocalizedString("trackers_completed", comment: "Трекеров завершено")),
+            StatisticsItem(value: averageValue, title: NSLocalizedString("average_value", comment: "Среднее значение"))
+        ]
+        
 
         hasStatisticsData = completedCount > 0
         updateUI()
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for (index, item) in statistics.enumerated() {
+        for item in statistics {
             let cell = StatisticsCell()
             cell.configure(with: item)
             cell.translatesAutoresizingMaskIntoConstraints = false
@@ -123,15 +123,9 @@ final class StatisticsViewController: UIViewController {
     }
     
     private func updateUI() {
-        if hasStatisticsData {
-            stackView.isHidden = false
-            emptyStateImageView.isHidden = true
-            emptyStateLabel.isHidden = true
-        } else {
-            stackView.isHidden = true
-            emptyStateImageView.isHidden = false
-            emptyStateLabel.isHidden = false
-        }
+        stackView.isHidden = !hasStatisticsData
+        emptyStateImageView.isHidden = hasStatisticsData
+        emptyStateLabel.isHidden = hasStatisticsData
     }
     
     private func calculateBestPeriod(records: [TrackerRecordCoreData]) -> Int {
@@ -156,7 +150,7 @@ final class StatisticsViewController: UIViewController {
     private func calculatePerfectDays(records: [TrackerRecordCoreData]) -> Int {
         let grouped = Dictionary(grouping: records) { $0.date?.startOfDay ?? Date() }
         var perfect = 0
-        for (day, recs) in grouped {
+        for recs in grouped.values {
             let completedTrackers = Set(recs.compactMap { $0.tracker?.id })
             // общее количество активных трекеров
             let activeTrackers = (try? CoreDataStack.shared.context.count(for: TrackerCoreData.fetchRequest())) ?? 0

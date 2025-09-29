@@ -18,9 +18,9 @@ final class SearchViewController: UIViewController, UISearchResultsUpdating {
         let resultsController = nil as UIViewController?
         self.searchController = UISearchController(searchResultsController: resultsController)
         super.init(nibName: nil, bundle: nil)
-        self.searchController.obscuresBackgroundDuringPresentation = false
-        self.searchController.searchBar.placeholder = "Поиск"
-        self.searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "Поиск"
+        searchController.searchResultsUpdater = self
     }
 
     required init?(coder: NSCoder) {

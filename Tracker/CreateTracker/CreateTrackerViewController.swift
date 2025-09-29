@@ -29,13 +29,13 @@ enum WeekDay: String, CaseIterable {
 
     var localized: String {
         switch self {
-        case .monday: return NSLocalizedString("monday", comment: "Понедельник")
-        case .tuesday: return NSLocalizedString("tuesday", comment: "Вторник")
-        case .wednesday: return NSLocalizedString("wednesday", comment: "Среда")
-        case .thursday: return NSLocalizedString("thursday", comment: "Четверг")
-        case .friday: return NSLocalizedString("friday", comment: "Пятница")
-        case .saturday: return NSLocalizedString("saturday", comment: "Суббота")
-        case .sunday: return NSLocalizedString("sunday", comment: "Воскресенье")
+        case .monday: NSLocalizedString("monday", comment: "Понедельник")
+        case .tuesday: NSLocalizedString("tuesday", comment: "Вторник")
+        case .wednesday: NSLocalizedString("wednesday", comment: "Среда")
+        case .thursday: NSLocalizedString("thursday", comment: "Четверг")
+        case .friday: NSLocalizedString("friday", comment: "Пятница")
+        case .saturday: NSLocalizedString("saturday", comment: "Суббота")
+        case .sunday: NSLocalizedString("sunday", comment: "Воскресенье")
         }
     }
 }

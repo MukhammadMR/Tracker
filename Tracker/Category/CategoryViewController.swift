@@ -157,8 +157,7 @@ final class CategoryViewController: UIViewController {
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-        guard let tableView = tableView else { return }
+        guard gesture.state == .began, let tableView = tableView else { return }
         let point = gesture.location(in: tableView)
         guard let indexPath = tableView.indexPathForRow(at: point) else { return }
 

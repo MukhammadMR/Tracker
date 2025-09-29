@@ -8,7 +8,9 @@
 import Foundation
 import YandexMobileMetrica
 
-class AnalyticsService {
+final class AnalyticsService {
+    private init() {}
+    static let shared = AnalyticsService()
     func logEvent(event: String, screen: String, item: String? = nil) {
         var parameters: [String: Any] = ["screen": screen]
         if let item = item {

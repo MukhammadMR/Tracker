@@ -22,7 +22,7 @@ final class TrackerSnapshotTests: XCTestCase {
         vc.loadViewIfNeeded()
 
         assertSnapshot(
-            matching: vc,
+            of: vc,
             as: .image(traits: .init(userInterfaceStyle: .light)),
             named: "TrackerViewController_Light"
         )
@@ -33,7 +33,7 @@ final class TrackerSnapshotTests: XCTestCase {
         vc.loadViewIfNeeded()
 
         assertSnapshot(
-            matching: vc,
+            of: vc,
             as: .image(traits: .init(userInterfaceStyle: .dark)),
             named: "TrackerViewController_Dark"
         )

@@ -31,7 +31,7 @@ protocol FilterViewControllerDelegate: AnyObject {
     func didSelectFilter(_ filter: TrackerFilter)
 }
 
-class FilterViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+final class FilterViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
     weak var delegate: FilterViewControllerDelegate?
     
