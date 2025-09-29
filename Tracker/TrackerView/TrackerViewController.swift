@@ -55,7 +55,15 @@ override func viewDidLoad() {
     view.backgroundColor = .systemBackground
     title = NSLocalizedString("trackers_title", comment: "Трекеры")
     navigationItem.largeTitleDisplayMode = .always
-    navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(named: "plus")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(addButtonTapped))
+    let plusImage = UIImage(named: "plus")?.withRenderingMode(.alwaysTemplate)
+    let plusButton = UIBarButtonItem(
+        image: plusImage,
+        style: .plain,
+        target: self,
+        action: #selector(addButtonTapped)
+    )
+    plusButton.tintColor = .label
+    navigationItem.leftBarButtonItem = plusButton
     let datePicker = UIDatePicker()
     datePicker.preferredDatePickerStyle = .compact
     datePicker.datePickerMode = .date
