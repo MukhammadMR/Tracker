@@ -4,6 +4,7 @@ final class TrackerViewController: UIViewController {
     
     // MARK: - Data
     private var categories: [TrackerCategory] = []
+    private var pinnedTrackers: [Tracker] = []
     var completedTrackers: [TrackerRecord] = []
     private var currentDate: Date = Date()
     private var filteredCategories: [TrackerCategory] = []
@@ -88,7 +89,6 @@ final class TrackerViewController: UIViewController {
             searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
         ])
         
-        // Add filter button below searchBar, centered horizontally
         view.addSubview(filterButton)
         filterButton.addTarget(self, action: #selector(filterButtonTapped), for: .touchUpInside)
         NSLayoutConstraint.activate([
@@ -114,6 +114,13 @@ final class TrackerViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        collectionView.contentInset = UIEdgeInsets(
+            top: 0,
+            left: 0,
+            bottom: 120,
+            right: 0
+        )
+        collectionView.scrollIndicatorInsets = collectionView.contentInset
         view.bringSubviewToFront(filterButton)
         collectionView.register(TrackerCollectionViewCell.self, forCellWithReuseIdentifier: "TrackerCell")
         collectionView.dataSource = self
@@ -175,11 +182,13 @@ final class TrackerViewController: UIViewController {
     
     // MARK: - Helpers
     private func rebuildCategories(from grouped: [String: [Tracker]]) {
-        var ordered: [TrackerCategory] = []
         let pinnedKey = NSLocalizedString("pinned", comment: "Закрепленные")
         if let pinned = grouped[pinnedKey], !pinned.isEmpty {
-            ordered.append(TrackerCategory(title: pinnedKey, trackers: pinned))
+            pinnedTrackers = pinned
+        } else {
+            pinnedTrackers = []
         }
+        var ordered: [TrackerCategory] = []
         for key in grouped.keys.sorted() where key != pinnedKey {
             if let trackers = grouped[key], !trackers.isEmpty {
                 ordered.append(TrackerCategory(title: key, trackers: trackers))
@@ -243,21 +252,34 @@ private func formattedDate(_ date: Date) -> String {
 // MARK: - UICollectionViewDataSource & Delegate
 extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
+        let pinnedCount = pinnedTrackers.isEmpty ? 0 : 1
         let showingCategories = isSearching ? filteredCategories : categories
-        return showingCategories.count
+        return pinnedCount + showingCategories.count
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let showingCategories = isSearching ? filteredCategories : categories
-        return showingCategories[section].trackers.count
+        if !pinnedTrackers.isEmpty && section == 0 {
+            return pinnedTrackers.count
+        } else {
+            let categoryIndex = pinnedTrackers.isEmpty ? section : section - 1
+            guard categoryIndex >= 0 && categoryIndex < showingCategories.count else { return 0 }
+            return showingCategories[categoryIndex].trackers.count
+        }
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TrackerCell", for: indexPath) as? TrackerCollectionViewCell else {
             return UICollectionViewCell()
         }
         let showingCategories = isSearching ? filteredCategories : categories
-        let tracker = showingCategories[indexPath.section].trackers[indexPath.item]
+        let tracker: Tracker
+        if !pinnedTrackers.isEmpty && indexPath.section == 0 {
+            tracker = pinnedTrackers[indexPath.item]
+        } else {
+            let categoryIndex = pinnedTrackers.isEmpty ? indexPath.section : indexPath.section - 1
+            tracker = showingCategories[categoryIndex].trackers[indexPath.item]
+        }
         let completedDays = completedTrackers.filter { $0.trackerID == tracker.id }.count
         let isCompletedToday = completedTrackers.contains {
             $0.trackerID == tracker.id && Calendar.current.isDate($0.date, inSameDayAs: currentDate)
@@ -276,25 +298,33 @@ extension TrackerViewController: UICollectionViewDataSource, UICollectionViewDel
         }
         return cell
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         guard kind == UICollectionView.elementKindSectionHeader else {
             return UICollectionReusableView()
         }
         let showingCategories = isSearching ? filteredCategories : categories
-        guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind,
-                                                                           withReuseIdentifier: "SectionHeader",
-                                                                           for: indexPath) as? TrackerSectionHeaderView else {
+        if !pinnedTrackers.isEmpty && indexPath.section == 0 {
             return UICollectionReusableView()
+        } else {
+            let categoryIndex = pinnedTrackers.isEmpty ? indexPath.section : indexPath.section - 1
+            guard categoryIndex >= 0 && categoryIndex < showingCategories.count else {
+                return UICollectionReusableView()
+            }
+            guard let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind,
+                                                                               withReuseIdentifier: "SectionHeader",
+                                                                               for: indexPath) as? TrackerSectionHeaderView else {
+                return UICollectionReusableView()
+            }
+            header.configure(with: showingCategories[categoryIndex].title)
+            return header
         }
-        header.configure(with: showingCategories[indexPath.section].title)
-        return header
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
         return CGSize(width: collectionView.frame.width, height: 32)
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let availableWidth = collectionView.frame.width
         let spacing: CGFloat = 9

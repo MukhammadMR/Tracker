@@ -85,6 +85,7 @@ final class FilterViewController: UIViewController, UITableViewDataSource, UITab
         let filter = filters[indexPath.row]
         selectedFilter = filter
         delegate?.didSelectFilter(filter)
+        dismiss(animated: true)
         tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
