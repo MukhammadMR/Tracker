@@ -1,0 +1,47 @@
+/* 
+  Localizable.strings
+  Tracker
+
+  Created by Мухаммад Махмудов on 25.09.2025.
+  
+*/
+
+"trackers_title" = "Trackers";
+"statistics_title" = "Statistics";
+"empty_statistics" = "Nothing to analyze yet";
+"category_title" = "Category";
+"add_category_button" = "Add category";
+"empty_category_text" = "Habits and events can be\ncombined by meaning";
+"edit_action" = "Edit";
+"delete_action" = "Delete";
+"cancel_action" = "Cancel";
+"statistics_empty" = "Nothing to analyze yet";
+"new_habit_title" = "New habit";
+"enterTrackerName" = "Enter tracker name";
+"schedule_title" = "Schedule";
+"search_placeholder" = "Search";
+"cancel_button" = "Cancel";
+"create_button" = "Create";
+"done_button" = "Done";
+"days_count" = "%d days";
+"monday" = "Monday";
+"tuesday" = "Tuesday";
+"wednesday" = "Wednesday";
+"thursday" = "Thursday";
+"friday" = "Friday";
+"saturday" = "Saturday";
+"sunday" = "Sunday";
+"emoji_title" = "Emoji";
+"color_title" = "Color";
+"what_to_track" = "What to track?";
+"nothing_found" = "Nothing found";
+"filter_all" = "All filter";
+"filter_today" = "Today filter";
+"filter_completed" = "Completed";
+"filter_not_completed" = "Not complited";
+"unpin" = "Unpin";
+"pin" = "Pin";
+"best_period" = "Best period";
+"perfect_days" = "Perfect days";
+"trackers_completed" = "Trackers completed";
+"average_value" = "Average value";

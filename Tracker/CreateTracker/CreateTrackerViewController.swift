@@ -7,11 +7,11 @@
 import UIKit
 
 private enum Constants {
-    static let titleLimitWarning = "Ограничение 38 символов"
-    static let categoryTitle = "Категория"
-    static let scheduleTitle = "Расписание"
-    static let emojiTitle = "Emoji"
-    static let colorTitle = "Цвет"
+    static let titleLimitWarning = NSLocalizedString("title_limit_warning", comment: "Ограничение 38 символов")
+    static let categoryTitle = NSLocalizedString("category_title", comment: "Категория")
+    static let scheduleTitle = NSLocalizedString("schedule_title", comment: "Расписание")
+    static let emojiTitle = NSLocalizedString("emoji_title", comment: "Emoji")
+    static let colorTitle = NSLocalizedString("color_title", comment: "Цвет")
     static let textFieldTop: CGFloat = 24
     static let textFieldSide: CGFloat = 16
     static let textFieldHeight: CGFloat = 75
@@ -26,6 +26,18 @@ enum WeekDay: String, CaseIterable {
     case friday = "Пятница"
     case saturday = "Суббота"
     case sunday = "Воскресенье"
+
+    var localized: String {
+        switch self {
+        case .monday: NSLocalizedString("monday", comment: "Понедельник")
+        case .tuesday: NSLocalizedString("tuesday", comment: "Вторник")
+        case .wednesday: NSLocalizedString("wednesday", comment: "Среда")
+        case .thursday: NSLocalizedString("thursday", comment: "Четверг")
+        case .friday: NSLocalizedString("friday", comment: "Пятница")
+        case .saturday: NSLocalizedString("saturday", comment: "Суббота")
+        case .sunday: NSLocalizedString("sunday", comment: "Воскресенье")
+        }
+    }
 }
 
 final class CreateTrackerViewController: UIViewController, ScheduleViewControllerDelegate {
@@ -75,12 +87,12 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
         return label
     }()
 
-    private var nameTopToContent: NSLayoutConstraint!
-    private var nameTopToDays: NSLayoutConstraint!
+    private var nameTopToContent: NSLayoutConstraint?
+    private var nameTopToDays: NSLayoutConstraint?
     
     private let nameTextField: UITextField = {
         let textField = UITextField()
-        textField.placeholder = "Введите название трекера"
+        textField.placeholder = NSLocalizedString("enterTrackerName", comment: "Введите название трекера")
         textField.backgroundColor = #colorLiteral(red: 0.902, green: 0.91, blue: 0.922, alpha: 0.3)
         textField.layer.cornerRadius = 10
         textField.font = UIFont.systemFont(ofSize: 17)
@@ -111,7 +123,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
     
     private let cancelButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Отменить", for: .normal)
+        button.setTitle(NSLocalizedString("cancel_button", comment: "Отменить"), for: .normal)
         button.setTitleColor(#colorLiteral(red: 0.961, green: 0.361, blue: 0.424, alpha: 1), for: .normal)
         button.layer.borderColor = #colorLiteral(red: 0.961, green: 0.361, blue: 0.424, alpha: 1)
         button.layer.borderWidth = 1
@@ -120,10 +132,10 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
+
     private let createButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Создать", for: .normal)
+        button.setTitle(NSLocalizedString("create_button", comment: "Создать"), for: .normal)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = #colorLiteral(red: 0.682, green: 0.686, blue: 0.706, alpha: 1)
         button.layer.cornerRadius = 16
@@ -139,7 +151,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = #colorLiteral(red: 0.9999999404, green: 1, blue: 1, alpha: 1)
-        title = "Новая привычка"
+        title = NSLocalizedString("new_habit_title", comment: "Новая привычка")
         tableView.backgroundColor = #colorLiteral(red: 0.902, green: 0.91, blue: 0.922, alpha: 0.3)
         tableView.dataSource = self
         tableView.delegate = self
@@ -247,7 +259,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
 
         nameTopToContent = nameTextField.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Constants.textFieldTop)
         nameTopToDays = nameTextField.topAnchor.constraint(equalTo: daysCountLabel.bottomAnchor, constant: 16)
-        nameTopToContent.isActive = true
+        nameTopToContent?.isActive = true
 
         NSLayoutConstraint.activate([
             nameTextField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.textFieldSide),
@@ -321,7 +333,7 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
     
     @objc private func createButtonTapped() {
         guard let titleText = nameTextField.text, !titleText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let schedule: [String] = selectedDays.map { WeekDay.allCases[$0].rawValue }
+        let schedule: [Int] = selectedDays
 
         if let original = editingTracker {
             let updated = Tracker(
@@ -352,8 +364,8 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
 
     private func applyEditingIfNeeded() {
         guard let tracker = editingTracker else { return }
-        title = "Редактирование привычки"
-        createButton.setTitle("Сохранить", for: .normal)
+        title = NSLocalizedString("edit_habit_title", comment: "Редактирование привычки")
+        createButton.setTitle(NSLocalizedString("save_button", comment: "Сохранить"), for: .normal)
         createButton.backgroundColor = #colorLiteral(red: 0.212, green: 0.22, blue: 0.255, alpha: 1)
         createButton.isEnabled = true
 
@@ -364,14 +376,14 @@ final class CreateTrackerViewController: UIViewController, ScheduleViewControlle
 
         let count = TrackerRecordStore.shared.records(for: tracker.id).count
         daysCountLabel.isHidden = false
-        daysCountLabel.text = "\(count) \(pluralizeDays(count))"
-        nameTopToContent.isActive = false
-        nameTopToDays.isActive = true
+        daysCountLabel.text = String.localizedStringWithFormat(
+            NSLocalizedString("days_count", comment: "Количество дней"),
+            count
+        )
+        nameTopToContent?.isActive = false
+        nameTopToDays?.isActive = true
 
-        let all = WeekDay.allCases
-        selectedDays = tracker.schedule.compactMap { str in
-            all.firstIndex(where: { $0.rawValue == str })
-        }
+        selectedDays = tracker.schedule
 
         tableView.reloadData()
         emojiCollectionView.reloadData()
@@ -407,10 +419,9 @@ extension CreateTrackerViewController: UITableViewDataSource {
             if selectedDays.isEmpty {
                 cell.subtitleLabel.text = nil
             } else if selectedDays.count == 7 {
-                cell.subtitleLabel.text = "Каждый день"
+                cell.subtitleLabel.text = NSLocalizedString("everyday", comment: "Каждый день")
             } else {
-                let shortWeekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-                let selectedNames = selectedDays.map { shortWeekdays[$0] }.joined(separator: ", ")
+                let selectedNames = selectedDays.map { WeekDay.allCases[$0].rawValue }.joined(separator: ", ")
                 cell.subtitleLabel.text = selectedNames
             }
         } else if indexPath.row == 0 {
@@ -435,7 +446,7 @@ extension CreateTrackerViewController: UITableViewDelegate {
 
         switch indexPath.row {
         case 0:
-            let categoryViewController = CategoryViewController()
+            let categoryViewController = CategoryViewController(viewModel: CategoryViewModel())
             categoryViewController.delegate = self
             let navController = UINavigationController(rootViewController: categoryViewController)
             present(navController, animated: true, completion: nil)
@@ -620,14 +631,6 @@ extension CreateTrackerViewController: UICollectionViewDataSource, UICollectionV
     }
 }
 
-private func pluralizeDays(_ n: Int) -> String {
-    let nAbs = abs(n) % 100
-    let n1 = nAbs % 10
-    if nAbs > 10 && nAbs < 20 { return "дней" }
-    if n1 == 1 { return "день" }
-    if n1 >= 2 && n1 <= 4 { return "дня" }
-    return "дней"
-}
 
 // MARK: - CategoryViewControllerDelegate
 extension CreateTrackerViewController: CategoryViewControllerDelegate {

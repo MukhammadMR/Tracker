@@ -13,7 +13,7 @@ struct TrackerFactory {
         emoji: String?,
         color: UIColor?,
         category: String?,
-        schedule: [String]
+        schedule: [Int]
     ) -> Tracker {
         return Tracker(
             id: UUID(),

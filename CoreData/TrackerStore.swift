@@ -36,13 +36,13 @@ final class TrackerStore: NSObject {
         return try context.fetch(request)
     }
 
-    func addTracker(name: String, color: UIColor, emoji: String, schedule: [WeekDay]) throws {
+    func addTracker(name: String, color: UIColor, emoji: String, schedule: [Int]) throws {
         let tracker = TrackerCoreData(context: context)
         tracker.id = UUID()
         tracker.name = name
         tracker.colorHex = color.toHexString()
         tracker.emoji = emoji
-        tracker.schedule = schedule.map { $0.rawValue }.joined(separator: ",")
+        tracker.schedule = schedule.map { String($0) }.joined(separator: ",")
         tracker.isPinned = false
         try context.save()
     }
@@ -53,7 +53,7 @@ final class TrackerStore: NSObject {
         trackerCoreData.name = tracker.name
         trackerCoreData.colorHex = tracker.color.toHexString()
         trackerCoreData.emoji = tracker.emoji
-        trackerCoreData.schedule = tracker.schedule.joined(separator: ",")
+        trackerCoreData.schedule = tracker.schedule.map { String($0) }.joined(separator: ",")
         let category = fetchOrCreateCategory(named: tracker.categoryName)
         trackerCoreData.category = category
         trackerCoreData.isPinned = false
@@ -77,11 +77,11 @@ final class TrackerStore: NSObject {
         try context.save()
     }
 
-    func updateTracker(_ tracker: TrackerCoreData, name: String, color: UIColor, emoji: String, schedule: [WeekDay]) throws {
+    func updateTracker(_ tracker: TrackerCoreData, name: String, color: UIColor, emoji: String, schedule: [Int]) throws {
         tracker.name = name
         tracker.colorHex = color.toHexString()
         tracker.emoji = emoji
-        tracker.schedule = schedule.map { $0.rawValue }.joined(separator: ",")
+        tracker.schedule = schedule.map { String($0) }.joined(separator: ",")
 
         try context.save()
     }
@@ -95,7 +95,7 @@ final class TrackerStore: NSObject {
         core.name = tracker.name
         core.colorHex = tracker.color.toHexString()
         core.emoji = tracker.emoji
-        core.schedule = tracker.schedule.joined(separator: ",")
+        core.schedule = tracker.schedule.map { String($0) }.joined(separator: ",")
 
         if core.category?.name != tracker.categoryName {
             let category = fetchOrCreateCategory(named: tracker.categoryName)
@@ -116,7 +116,7 @@ final class TrackerStore: NSObject {
 
         let schedule = scheduleString
             .split(separator: ",")
-            .compactMap { WeekDay(rawValue: String($0)) }
+            .compactMap { Int($0) }
 
         return Tracker(
             id: id,
@@ -124,7 +124,7 @@ final class TrackerStore: NSObject {
             color: UIColor(hex: colorHex),
             emoji: emoji,
             categoryName: trackerCoreData.category?.name ?? "",
-            schedule: schedule.map { $0.rawValue }
+            schedule: schedule
         )
     }
 
@@ -163,7 +163,7 @@ final class TrackerStore: NSObject {
     }
 
     func isPinned(_ id: UUID) -> Bool {
-        return fetchTracker(by: id)?.isPinned ?? false
+        fetchTracker(by: id)?.isPinned ?? false
     }
 
     func togglePinned(_ id: UUID) throws {

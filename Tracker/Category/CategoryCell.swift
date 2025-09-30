@@ -55,7 +55,7 @@ final class CategoryCell: UITableViewCell {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(titleLabel)
 
-        checkmarkImageView.image = UIImage(named: "blue_checkmark")
+        checkmarkImageView.image = UIImage(resource: .blueCheckmark)
         checkmarkImageView.contentMode = .scaleAspectFit
         checkmarkImageView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(checkmarkImageView)

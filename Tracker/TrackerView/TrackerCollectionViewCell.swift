@@ -14,10 +14,11 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     var onPlusButtonTapped: (() -> Void)?
     
     private var isCompleted: Bool = false
+    private var trackerColor: UIColor = .systemBlue
 
     private let emojiBackgroundView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor.white.withAlphaComponent(0.3)
+        view.backgroundColor = UIColor(named: "YPWhite")?.withAlphaComponent(0.3)
         view.layer.cornerRadius = 12
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -33,7 +34,7 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
-        label.textColor = .white
+        label.textColor = UIColor(named: "YPWhite")
         label.numberOfLines = 2
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -42,6 +43,7 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     private let daysLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 12)
+        label.textColor = UIColor.label
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -56,6 +58,7 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     private let cardView: UIView = {
         let view = UIView()
         view.layer.cornerRadius = 16
+        view.backgroundColor = UIColor(named: "YPBackground")
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -110,25 +113,30 @@ final class TrackerCollectionViewCell: UICollectionViewCell {
     func configure(with tracker: Tracker, completedDays: Int, isCompleted: Bool, isFutureDate: Bool) {
         emojiLabel.text = tracker.emoji
         titleLabel.text = tracker.name
-        daysLabel.text = "\(completedDays) \(completedDays == 1 ? "день" : (completedDays >= 2 && completedDays <= 4 ? "дня" : "дней"))"
+        let formatString = NSLocalizedString("days_count", comment: "")
+        daysLabel.text = String.localizedStringWithFormat(formatString, completedDays)
         cardView.backgroundColor = tracker.color
+        self.trackerColor = tracker.color
         self.isCompleted = isCompleted
-        updatePlusButtonAppearance(isFutureDate: isFutureDate)
+        updatePlusButtonAppearance(isFutureDate: isFutureDate, trackerColor: tracker.color)
     }
-    
-    private func updatePlusButtonAppearance(isFutureDate: Bool) {
+
+    private func updatePlusButtonAppearance(isFutureDate: Bool, trackerColor: UIColor) {
         let imageName = isCompleted ? "tracker_done_button" : "tracker_plus_button"
-        plusButton.setImage(UIImage(named: imageName), for: .normal)
+        let image = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate)
+        plusButton.setImage(image, for: .normal)
+        plusButton.tintColor = trackerColor
         plusButton.isEnabled = !isFutureDate
     }
     
     private func toggleTrackerCompletion() {
         isCompleted.toggle()
-        updatePlusButtonAppearance(isFutureDate: false)
+        updatePlusButtonAppearance(isFutureDate: false, trackerColor: trackerColor)
         onPlusButtonTapped?()
     }
     
     @objc private func plusButtonTapped() {
+        AnalyticsService.shared.logEvent(event: "click", screen: "main", item: "track")
         toggleTrackerCompletion()
     }
 

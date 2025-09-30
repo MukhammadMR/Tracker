@@ -34,11 +34,11 @@ final class OnboardingPageViewController: UIPageViewController {
     private func setupPages() {
         let models = [
             OnboardingPage(imageName: "onboarding_blue",
-                           text: "Отслеживайте только то, что хотите",
-                           buttonTitle: "Вот это технологии!"),
+                           text: NSLocalizedString("onboarding_first_text", comment: "Отслеживайте только то, что хотите"),
+                           buttonTitle: NSLocalizedString("onboarding_button_title", comment: "Вот это технологии!")),
             OnboardingPage(imageName: "onboarding_red",
-                           text: "Даже если это \nне литры воды и йога",
-                           buttonTitle: "Вот это технологии!")
+                           text: NSLocalizedString("onboarding_second_text", comment: "Даже если это \nне литры воды и йога"),
+                           buttonTitle: NSLocalizedString("onboarding_button_title", comment: "Вот это технологии!"))
         ]
         pages = models.map { model in
             let vc = OnboardingContentViewController(page: model)

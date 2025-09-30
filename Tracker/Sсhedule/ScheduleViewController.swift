@@ -11,12 +11,20 @@ final class ScheduleViewController: UIViewController {
     weak var delegate: ScheduleViewControllerDelegate?
     
     private let tableView = UITableView()
-    private let daysOfWeek = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    private let daysOfWeek = [
+        NSLocalizedString("monday", comment: "Понедельник"),
+        NSLocalizedString("tuesday", comment: "Вторник"),
+        NSLocalizedString("wednesday", comment: "Среда"),
+        NSLocalizedString("thursday", comment: "Четверг"),
+        NSLocalizedString("friday", comment: "Пятница"),
+        NSLocalizedString("saturday", comment: "Суббота"),
+        NSLocalizedString("sunday", comment: "Воскресенье")
+    ]
     private var selectedDays = Set<Int>()
 
     private let doneButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Готово", for: .normal)
+        button.setTitle(NSLocalizedString("done_button", comment: "Готово"), for: .normal)
         button.backgroundColor = UIColor(named: "Black") ?? .black
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 16
@@ -26,7 +34,7 @@ final class ScheduleViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        navigationItem.title = "Расписание"
+        navigationItem.title = NSLocalizedString("schedule_title", comment: "Расписание")
         view.backgroundColor = .systemBackground
         view.addSubview(doneButton)
         setupTableView()

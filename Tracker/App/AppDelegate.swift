@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import YandexMobileMetrica
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +15,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        UIBarButtonItem.appearance(whenContainedInInstancesOf: [UISearchBar.self]).title = "Отменить"
+        
+        if let configuration = YMMYandexMetricaConfiguration(apiKey: "21348712-e0bb-4c06-a6e7-b1c9b884131e") {
+            YMMYandexMetrica.activate(with: configuration)
+        }
         return true
     }
 
